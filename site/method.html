@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works — Dee &amp; Don Watch</title>
+<meta name="description" content="Method, backtest and limitations for Dee & Don Watch: how a flood travels downstream, why a z-score failed, and where the detectors measurably miss.">
+<meta name="color-scheme" content="dark">
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<a class="skip" href="#wave">Skip to the flood wave</a>
+
+<header class="wrap masthead">
+  <p class="wordmark">Dee &amp; Don Watch <span>· how it works</span></p>
+  <nav><a href="index.html">← Back to the gauges</a></nav>
+</header>
+
+<main>
+
+  <section class="wrap">
+    <h1>How this works, and where it fails</h1>
+    <p class="lede">
+      Thirteen SEPA gauges on the Dee and Don, each judged only against its own
+      ten-year record. This page is the honest version: the method, the one event it
+      was tested against, and the places it measurably got things wrong.
+    </p>
+  </section>
+
+  <section class="wrap" id="wave" aria-labelledby="waveHeading">
+    <h2 id="waveHeading">A flood takes 13 h 45 m to travel 82 km down the Dee</h2>
+    <p class="sub" id="waveSub"></p>
+    <div id="waveRivers"></div>
+
+    <h3 class="subhead">Tributaries peak first</h3>
+    <p class="sub">
+      Small, steep side catchments respond to rain in hours. The main stem gathers that
+      water and carries it down slowly, so every tributary gauge crested before the wave
+      reached the lowest gauge on the main river.
+    </p>
+    <div class="chips" id="waveTributaries"></div>
+
+    <h3 class="subhead">Two ways of timing the same reach</h3>
+    <p class="sub">
+      Peak-to-peak rests on a single sample per gauge. Cross-correlating the whole
+      normalised hydrograph uses the shape of the entire event. Where they disagree, that
+      reach is genuinely uncertain rather than averaged into a tidy figure.
+    </p>
+    <div class="tablewrap">
+      <table id="waveTable">
+        <caption class="visually-hidden">Travel time per reach, measured two ways</caption>
+        <thead>
+          <tr>
+            <th scope="col">Reach</th><th scope="col">Apart</th>
+            <th scope="col">Peak to peak</th><th scope="col">Cross-correlation</th>
+            <th scope="col">Difference</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="fineprint" id="waveNotes"></p>
+  </section>
+
+  <section class="wrap spacetime" id="spacetime" aria-labelledby="stHeading">
+    <h2 id="stHeading">The same wave, as space and time</h2>
+    <p class="st-lede">
+      Every main-stem gauge at its true distance from Aberdeen, upstream at the top,
+      over the three days around the peak. Each gauge is scaled to
+      <strong>its own rise within this event</strong> &#8212; dark at its lowest here,
+      bright at its peak &#8212; which is the same normalised hydrograph the
+      cross-correlation above uses. Percentile is not used here: in the largest event of
+      the record every gauge pegs at the 100th for days, leaving no headroom to show the
+      one thing this chart is for. The wave is the diagonal, and it is the same
+      13&#160;h 45&#160;m as the table, drawn rather than tabulated.
+    </p>
+    <div id="stChart"></div>
+    <p class="st-note">
+      The gaps between rows are gaps. Nothing is drawn between gauges &#8212; the
+      30 km between Mar Lodge and Polhollick is unmeasured, and filling it in would
+      invent the very thing this chart claims to show. Tributaries are left out because
+      they sit on different watercourses, so they have no place on a
+      distance-downstream axis.
+    </p>
+  </section>
+
+  <section class="wrap prose" aria-labelledby="methodHeading">
+    <h2 id="methodHeading">The method</h2>
+    <div class="grid">
+      <article>
+        <h3>Every gauge is its own yardstick</h3>
+        <p>
+          Level is measured against each gauge's own datum, so metres are not comparable
+          between stations. A rise is flagged when it is faster than <strong>99.5%</strong>
+          of that gauge's own hourly rises <em>and</em> at least 0.05&nbsp;m/hr. A level is
+          flagged above the <strong>99th percentile</strong> of its record.
+        </p>
+      </article>
+      <article>
+        <h3>Why not a z-score</h3>
+        <p>
+          The first version used a median/MAD z-score — the textbook choice — and fired on
+          <strong>10.91%</strong> of all readings. These sensors resolve to 1&nbsp;mm and the
+          rivers register no change at all in 13–50% of samples, so the MAD collapsed to one
+          to four sensor ticks and "3 sigma" meant <strong>a 3&nbsp;mm rise in an hour</strong>.
+          It was measuring the instrument, not the river.
+        </p>
+      </article>
+      <article>
+        <h3>Bad data never becomes news</h3>
+        <p>
+          A stuck sensor coming unstuck, one bad reading, or a stretch SEPA marks Suspect all
+          look like a violent rise. Anything carrying a data-quality flag has its rise and
+          level flags <strong>suppressed</strong>, and is drawn in grey as "not trusted"
+          rather than reported as a river event.
+        </p>
+      </article>
+      <article>
+        <h3>"Provisional" is not a formality</h3>
+        <p>
+          Recent readings carry SEPA's code <span class="mono">254&nbsp;Unchecked</span> until a
+          manual pass that runs <strong>monthly</strong>. Values can be revised or withdrawn
+          weeks after collection. Everything here is provisional.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" id="backtest" aria-labelledby="backtestHeading">
+    <h2 id="backtestHeading">Backtest — including what missed</h2>
+    <p class="sub" id="backtestSub"></p>
+    <div class="tablewrap">
+      <table id="backtestTable">
+        <caption class="visually-hidden">Detector performance at the largest event in the record</caption>
+        <thead>
+          <tr>
+            <th scope="col">Gauge</th><th scope="col">Peak</th><th scope="col">Level</th>
+            <th scope="col">Fast rise</th><th scope="col">Strict</th><th scope="col">High level</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="fineprint" id="backtestNotes"></p>
+  </section>
+
+
+  <section class="wrap" id="routing" aria-labelledby="routingHeading">
+    <h2 id="routingHeading">How far ahead can this be predicted?</h2>
+    <p class="sub" id="routingSub"></p>
+
+    <div class="chartbox-small">
+      <canvas id="skillChart" role="img" aria-label="Forecast skill against horizon"></canvas>
+    </div>
+    <p class="fineprint" id="routingNote"></p>
+
+    <div class="tablewrap">
+      <table id="routingTable">
+        <caption class="visually-hidden">Routing skill against persistence, by horizon</caption>
+        <thead>
+          <tr>
+            <th scope="col">Reach</th><th scope="col">Horizon</th>
+            <th scope="col">Persistence</th><th scope="col">Model</th>
+            <th scope="col">Skill</th><th scope="col">Skill in top 1%</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <p class="fineprint">
+      <strong>This is routing, not forecasting.</strong> It uses water that is already in the
+      river, which is why it works at all and why it stops working when it does. No rainfall
+      forecast is involved, nothing here is published as a live prediction, and for actual
+      flood warnings the answer remains SEPA and the Met Office.
+    </p>
+  </section>
+
+  <section class="wrap" id="limits" aria-labelledby="limitsHeading">
+    <h2 id="limitsHeading">Limitations</h2>
+    <p class="sub">What this cannot tell you, including where it measurably failed.</p>
+    <ul class="limits">
+      <li><strong>Not a warning service, and no forecasting.</strong> It describes what gauges
+        have already recorded. A quiet page is not an all-clear.</li>
+      <li><strong>Lead time is a fragile number.</strong> It is set by the earliest marginal
+        detection, so it can swing by days while the detector barely moves. One gauge has
+        reported "at least 72 hours", then 10.8 hours, then "at least 72 hours" again on
+        identical raw data, as the reference record grew from five years to eight to ten —
+        because one rise sat exactly on the threshold and its rank shifted by 0.009 of a
+        percentile.</li>
+      <li><strong>Thresholds depend on which years you score against.</strong> Adding 2016–2018
+        moved every one of the 26 thresholds downward, by up to 6.4%, because those two years
+        were quieter. That is the river behaving differently in different decades, not noise
+        that more data removes. Ten years is a stated choice, not a maximum.</li>
+      <li><strong>The strict rise flag missed the biggest peaks</strong> — no fire at Garthdee,
+        Park or Polhollick, three of the highest gauges of the event.</li>
+      <li><strong>Travel times are uncertain per reach.</strong> The ordering is unambiguous;
+        the two independent timings agree on only three of seven reaches.</li>
+      <li><strong>Flags are relative to each gauge</strong> and not comparable between them.</li>
+      <li><strong>Distances are straight-line</strong> to Aberdeen, not along the channel, so
+        km/h figures are apparent speeds, not wave celerity.</li>
+      <li><strong>Spikes are invisible at the live edge.</strong> The detector uses a centred
+        window, so the most recent 90 minutes are never spike-checked.</li>
+      <li><strong>The floor excludes slow water.</strong> The 0.05 m/hr minimum that fixes the
+        quantisation problem means a slow-responding body can never raise a rise flag — which
+        is why Loch Kinord was removed rather than shown as permanently calm.</li>
+      <li><strong>Scheduled runs are best-effort.</strong> GitHub warns scheduled workflows can
+        be delayed and some jobs dropped, and that they are disabled after 60 days without
+        repository activity.</li>
+      <li><strong>Level only.</strong> No rainfall, no flow, no forecast input. Rainfall
+        (SEPA parameter <span class="mono">RE</span>, the same API) would let this explain
+        rises rather than only report them — that is the obvious next step.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p class="disclaimer">
+    Not a flood warning service. For warnings see
+    <a href="https://www.sepa.org.uk/environment/water/flooding/" rel="noopener">SEPA</a> and the
+    <a href="https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings" rel="noopener">Met Office</a>.
+    Data: SEPA, provisional, Open Government Licence.
+  </p>
+  <p class="fineprint" id="attribution"></p>
+  <p class="fineprint">
+    <a href="index.html">Back to the gauges</a> ·
+    <a href="https://timeseriesdoc.sepa.org.uk/api-documentation/" rel="noopener">SEPA time series API</a> ·
+    <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" rel="noopener">OGL v3.0</a>
+  </p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"
+        integrity="sha512-WoViKhKD4qI2WruSZqv9+kvM4WfFhUMQCLN4QlDTt5aU56fLQy2gYoxWIqlEnXqJy/+Ac5q/hk1oWfqnMDhwMA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="js/spacetime.js"></script>
+<script src="js/method.js"></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+# Dee & Don Watch — pipeline configuration
+#
+# Data: SEPA, provisional, Open Government Licence.
+# API docs: https://timeseriesdoc.sepa.org.uk/api-documentation/
+
+api:
+  # Documented KiWIS base. Every request adds:
+  #   service=kisters&type=queryServices&datasource=0
+  base_url: https://timeseries.sepa.org.uk/KiWIS/KiWIS
+  # SEPA's documented "Referer access" mode: the originator of a request is
+  # identified by the Referer header value rather than by IP.
+  referer: dee-and-don-watch
+  timeout_seconds: 60
+  max_retries: 4
+  backoff_seconds: 2.0
+  # Optional. If set, sent as "Authorization: Basic <value>".
+  # Request one from hydrometry-requests@sepa.org.uk, subject "API Key Request".
+  access_key_env: SEPA_ACCESS_KEY
+
+discovery:
+  # 15-minute river level (stage). SG = stage, 15m.Cmd = 15-minute complete data.
+  ts_path: "*/*/SG/15m.Cmd"
+  # Must be exact: there is also a "Dee (Galloway)" catchment 200 km away.
+  catchments:
+    - Dee (Aberdeenshire)
+    - Don (Aberdeenshire)
+  # A series counts as live if its coverage ends within this many days of today.
+  live_within_days: 7
+
+fetch:
+  # The reference window every percentile threshold is scored against, so it is
+  # a modelling choice, not a storage setting. Changing it moves every threshold
+  # and every reported lead time: adding 2016-2018 lowered all 26 thresholds by
+  # up to 6.4%, because those two years were quieter than 2018-2026. Do not
+  # change it casually, and re-run export/backtest/wave if you do.
+  #
+  # It also matters on a cold CI cache: if this said 5, a cache miss would
+  # rebuild a 5-year reference and silently alter every number on the site.
+  backfill_years: 10
+  # On incremental runs, re-request this much already-held data and prefer the
+  # newer copy. SEPA applies manual quality control "on a monthly cycle", so a
+  # revision can land weeks after collection; anything shorter than a month
+  # would leave superseded values sitting in our cache forever.
+  overlap_hours: 840         # 35 days
+  raw_dir: data/raw
+
+detect:
+  # Sampling interval of the SG/15m.Cmd series.
+  freq_minutes: 15
+
+  # --- data quality ---
+  min_gap_minutes: 45        # longer than two missed samples
+  # A stuck sensor means NO movement at all, for a long time. Measured against
+  # the real cache: these gauges resolve to 1 mm and sit at exactly the same
+  # reading for 13-50% of samples, so "unchanged for 3 hours" is ordinary low
+  # flow. 12 hours of zero movement covers 0.05-0.74% of the record.
+  flatline_minutes: 720
+  flatline_tol_m: 0.0
+  hampel_window: 13          # samples, ~3h centred
+  hampel_sigmas: 3.0
+
+  # --- unusual behaviour, scored against each station's own history ---
+  # A median/MAD z-score was tried first and abandoned: at 1 mm resolution its
+  # scale was one to four sensor ticks, so z>=3 meant "rose 3 mm in an hour"
+  # and fired on 6-11% of all samples. Percentiles of the station's own rise
+  # history make the claim checkable: "faster than 99.5% of this record".
+  rise_pct_warn: 99.5
+  rise_pct_high: 99.9
+  # Floor, so that the top 0.5% of a station's rises during a drought cannot be
+  # announced as notable when it is 2 mm an hour.
+  rise_min_m_per_hr: 0.05
+  high_level_pct: 99.0
+
+# --- rainfall -------------------------------------------------------------
+# Hourly totals (RE/Hour.Total), not 15-minute. Tipping-bucket gauges resolve
+# at 0.2 mm, so sub-hourly rainfall adds noise rather than signal, and hourly
+# costs a quarter as many credits for the same ten years.
+#
+# Rain is NOT run through the level detectors. It is context: it answers
+# "did rain precede this rise", which the level series alone cannot.
+rain:
+  ts_path: "*/*/RE/Hour.Total"
+  freq_minutes: 60
+  raw_dir: data/raw_rain
+  backfill_years: 10
+  overlap_hours: 840
+
+# ts_ids and coordinates confirmed against getTimeseriesList on 2026-10-25.
+rain_stations:
+  - name: Charr
+    catchment: Dee
+    station_no: "234183"
+    ts_id: "57066010"
+    lat: 56.94084906
+    lon: -2.619402267
+    record_from: 1990-06-18
+  - name: Derry Lodge
+    catchment: Dee
+    station_no: "454765"
+    ts_id: "59937010"
+    lat: 57.02065155
+    lon: -3.58738853
+    record_from: 2009-12-10
+  - name: Gairnshiel
+    catchment: Dee
+    station_no: "115223"
+    ts_id: "51545010"
+    lat: 57.09199509
+    lon: -3.165582141
+    record_from: 2002-04-01
+  - name: Glenmuick No2
+    catchment: Dee
+    station_no: "367371"
+    ts_id: "59565010"
+    lat: 56.95161175
+    lon: -3.141253355
+    record_from: 2008-09-17
+  - name: Inverey
+    catchment: Dee
+    station_no: "115230"
+    ts_id: "51586010"
+    lat: 56.98569953
+    lon: -3.500915775
+    record_from: 1992-08-01
+  - name: Mongour
+    catchment: Dee
+    station_no: "115235"
+    ts_id: "51595010"
+    lat: 57.00199506
+    lon: -2.388582046
+    record_from: 1995-10-11
+  - name: Polhollick
+    catchment: Dee
+    station_no: "234294"
+    ts_id: "58100010"
+    lat: 57.05514629
+    lon: -3.083180673
+    record_from: 1995-04-22
+  - name: Tarland WWTP
+    catchment: Dee
+    station_no: "511327"
+    ts_id: "60673010"
+    lat: 57.12504883
+    lon: -2.851450464
+    record_from: 2015-02-13
+  - name: Westhill
+    catchment: Dee
+    station_no: "115250"
+    ts_id: "51645010"
+    lat: 57.14756943
+    lon: -2.291989375
+    record_from: 1994-03-25
+  - name: Alford
+    catchment: Don
+    station_no: "234170"
+    ts_id: "56951010"
+    lat: 57.24230294
+    lon: -2.717123004
+    record_from: 1995-08-19
+  - name: Deskry Shiel
+    catchment: Don
+    station_no: "335582"
+    ts_id: "58799010"
+    lat: 57.18037959
+    lon: -2.983867766
+    record_from: 2008-10-23
+  - name: Inverurie
+    catchment: Don
+    station_no: "367365"
+    ts_id: "59556010"
+    lat: 57.2583172
+    lon: -2.362253256
+    record_from: 2009-01-12
+
+# Every live 15-minute level gauge in the Aberdeenshire Dee and Don catchments.
+# ts_ids and coordinates confirmed against getTimeseriesList, and `river` against
+# getStationList (`river_name`), both on 2026-10-24. Not taken from third-party
+# sites. Re-run discover.py to re-confirm.
+#
+# `river` is the watercourse the gauge actually sits on, which is NOT the
+# catchment: Heugh Head is on the Feugh, Invergairn on the Gairn and Invermuick
+# on the Muick, all inside the Dee catchment; Pitcaple is on the Urie inside the
+# Don catchment. Labelling those "Dee" and "Don" was wrong and broke the
+# flood-wave ordering until it was fixed.
+#
+# `main_stem` marks gauges on the Dee or Don themselves. Only those are
+# comparable as a downstream sequence; tributary gauges peak on their own
+# schedule and will appear out of order if mixed in.
+#
+# Excluded as stale: Charr (ends 2021-04-01), Aboyne (2024-10-11),
+# Littlemill (2024-08-30).
+#
+# Excluded as not a river: Meikle Kinord (station_no 356327, ts_id 59425010) is
+# on LOCH KINORD. Over 8 years its level moved a total of 0.81 m and its fastest
+# hourly rise was 0.024 m/hr — less than half the 0.05 m/hr floor — so it can
+# never raise a flag. Its parquet is still cached if it is ever wanted.
+stations:
+  - name: Garthdee
+    river: Dee
+    catchment: Dee
+    main_stem: true
+    station_no: "368014"
+    ts_id: "59580010"
+    lat: 57.11882365
+    lon: -2.124396574
+    record_from: 2008-12-03
+  - name: Park
+    river: Dee
+    catchment: Dee
+    main_stem: true
+    station_no: "234291"
+    ts_id: "58049010"
+    lat: 57.075424
+    lon: -2.335825098
+    record_from: 1972-10-11
+  - name: Heugh Head
+    river: Feugh
+    catchment: Dee
+    main_stem: false
+    station_no: "234237"
+    ts_id: "57581010"
+    lat: 57.02524569
+    lon: -2.517160888
+    record_from: 1985-01-14
+  - name: Woodend
+    river: Dee
+    catchment: Dee
+    main_stem: true
+    station_no: "234333"
+    ts_id: "58482010"
+    lat: 57.0501291
+    lon: -2.603567118
+    record_from: 1972-09-19
+  - name: Invermuick
+    river: Muick
+    catchment: Dee
+    main_stem: false
+    station_no: "234247"
+    ts_id: "57661010"
+    lat: 57.03951544
+    lon: -3.049304978
+    record_from: 1990-01-17
+  - name: Invergairn
+    river: Gairn
+    catchment: Dee
+    main_stem: false
+    station_no: "234243"
+    ts_id: "57645010"
+    lat: 57.05992614
+    lon: -3.069535364
+    record_from: 1990-01-19
+  - name: Polhollick
+    river: Dee
+    catchment: Dee
+    main_stem: true
+    station_no: "234294"
+    ts_id: "58106010"
+    lat: 57.05514629
+    lon: -3.083180673
+    record_from: 1975-06-19
+  - name: Mar Lodge
+    river: Dee
+    catchment: Dee
+    main_stem: true
+    station_no: "234274"
+    ts_id: "57912010"
+    lat: 56.98804049
+    lon: -3.486197825
+    record_from: 1982-09-10
+  - name: Parkhill
+    river: Don
+    catchment: Don
+    main_stem: true
+    station_no: "234292"
+    ts_id: "58065010"
+    lat: 57.21832146
+    lon: -2.187586406
+    record_from: 1988-12-22
+  - name: Haughton
+    river: Don
+    catchment: Don
+    main_stem: true
+    station_no: "234235"
+    ts_id: "57564010"
+    lat: 57.27134676
+    lon: -2.404963889
+    record_from: 1971-02-20
+  - name: Pitcaple
+    river: Urie
+    catchment: Don
+    main_stem: false
+    station_no: "234293"
+    ts_id: "58081010"
+    lat: 57.32351879
+    lon: -2.464869508
+    record_from: 1988-01-01
+  - name: Alford
+    river: Don
+    catchment: Don
+    main_stem: true
+    station_no: "234170"
+    ts_id: "56957010"
+    lat: 57.24230294
+    lon: -2.717123004
+    record_from: 1973-04-23
+  - name: Culfork
+    river: Don
+    catchment: Don
+    main_stem: true
+    station_no: "234191"
+    ts_id: "57215010"
+    lat: 57.18022427
+    lon: -3.11016313
+    record_from: 1997-08-08

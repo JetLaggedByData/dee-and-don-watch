@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Raw SEPA caches — rebuilt by fetch.py / fetch_flow.py, restored in CI from
+# actions/cache, never committed. Together they are ~57 MB of parquet.
+data/raw/
+data/raw_rain/
+data/raw_flow/
+
+# Derived site data. NOT committed: export.py regenerates it on every CI run
+# and upload-pages-artifact packages it straight from the runner. Committing it
+# at a 15-minute cadence would add tens of thousands of churn commits a year.
+# After cloning, run the pipeline once before previewing locally.
+site/data/

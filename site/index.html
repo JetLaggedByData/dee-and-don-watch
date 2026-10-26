@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dee &amp; Don Watch</title>
+<meta name="description" content="Is anything unusual on the Dee and Don right now? 13 SEPA river-level gauges near Aberdeen, each judged against its own ten-year record. Not a flood warning service.">
+<meta name="color-scheme" content="dark">
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<a class="skip" href="#gaugeList">Skip to the gauge readings</a>
+
+<div id="staleBanner" class="banner" role="status" hidden></div>
+
+<div class="app">
+
+  <div class="app-map" id="riverMap"></div>
+
+  <aside class="panel" id="panel" aria-label="Readings">
+
+    <div class="panel-head">
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Dee &amp; Don Watch · near Aberdeen</p>
+      <a class="panel-method" href="method.html">How this works, and where it fails &#8594;</a>
+    </div>
+
+    <!-- Overview: the answer, then every gauge. -->
+    <div class="panel-view" id="viewList">
+      <h1 class="answer-line" id="answerLine">Loading&#8230;</h1>
+      <p class="answer-sub" id="answerSub"></p>
+      <p class="trend" id="trend"></p>
+      <p class="updated">
+        Last updated <time id="generated" class="mono">&#8212;</time> &#183;
+        <a href="method.html">how this is judged</a>
+      </p>
+
+      <p class="map-hint">
+        On the map, channel width is each gauge&#8217;s level within
+        <strong>its own record</strong> and amber means flagged.
+        Select any gauge, on the map or below.
+      </p>
+
+      <h2 class="visually-hidden" id="gaugesHeading">Gauges</h2>
+      <div class="gauges" id="gaugeList" role="group" aria-label="River level gauges, most unusual first"></div>
+
+      <div class="key-inline">
+        <p class="card-label">How to read this</p>
+        <div class="stage-key" id="riverKey"></div>
+      </div>
+
+      <p class="statpill" id="statPill"></p>
+    </div>
+
+    <!-- Detail: the same panel, one gauge. The map stays put behind it. -->
+    <div class="panel-view" id="viewDetail" hidden aria-labelledby="detailHeading">
+      <div class="detail-nav">
+        <button type="button" class="backlink" id="backToList">&#8592; All gauges</button>
+        <div class="stepper" role="group" aria-label="Move between gauges">
+          <button type="button" id="prevGauge" aria-label="Previous gauge">&#8592;</button>
+          <span class="stepper-pos" id="gaugePos" aria-live="polite"></span>
+          <button type="button" id="nextGauge" aria-label="Next gauge">&#8594;</button>
+        </div>
+      </div>
+
+      <h2 id="detailHeading"><span id="detailName">&#8212;</span></h2>
+      <p class="detail-sub" id="detailSub"></p>
+
+      <div id="chartZone">
+        <div class="customrange">
+          <label for="customFrom">From</label>
+          <input type="date" id="customFrom">
+          <label for="customTo">to</label>
+          <input type="date" id="customTo">
+        </div>
+      <div class="toggles">
+        <div class="viewtoggle" role="group" aria-label="Chart or table">
+          <button type="button" id="viewChart" aria-pressed="true">Chart</button>
+          <button type="button" id="viewTable" aria-pressed="false">Table</button>
+        </div>
+        <div class="viewtoggle rangetoggle" id="rangeToggle" role="group"
+             aria-label="Time range"></div>
+        <button type="button" class="expand" id="expandChart"
+                aria-expanded="false">&#9974; Pop out</button>
+      </div>
+
+      <div id="chartbox">
+        <!-- One figure on one time axis: rainfall hanging from the top, level
+             below. Deliberately NOT a dual-axis chart — two y-scales can be
+             slid to make rain and level appear to track each other or not. -->
+        <figure class="hydro">
+          <div class="levelbox">
+            <canvas id="chart" role="img" aria-label="Rainfall and river level"></canvas>
+          </div>
+          <figcaption class="panel-label" id="rainLabel">Rainfall over the catchment</figcaption>
+        </figure>
+      </div>
+
+      <div class="tablewrap" id="seriesTableWrap" hidden>
+        <table id="seriesTable">
+          <caption class="visually-hidden">Daily summary of the last 14 days &#8212; the same data as the chart</caption>
+          <thead>
+            <tr>
+              <th scope="col">Day (UTC)</th>
+              <th scope="col">Rain mm</th>
+              <th scope="col">Min</th>
+              <th scope="col">Mean</th>
+              <th scope="col">Max</th>
+              <th scope="col">Flags</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <ul class="legend" id="legend">
+        <li><span class="key line-key"></span>Level</li>
+        <li><span class="key dash-key"></span>Unusually high above</li>
+        <li><span class="key band-key alert"></span>Unusual rise</li>
+        <li><span class="key band-key neutral"></span>Not trusted</li>
+        <li><span class="key rain-key"></span><span id="rainUnit">Rainfall (mm/hr)</span></li>
+        <li id="legendProjected" hidden><span class="key proj-key"></span>Projected from water upstream</li>
+      </ul>
+
+      </div>
+
+      <p class="proj-note fineprint" id="projNote" hidden></p>
+
+      <!-- Observational only. What is upstream right now, not what will happen
+           here later: this is not a forecasting service. -->
+      <div class="upstream" id="upstream"></div>
+    </div>
+
+  </aside>
+</div>
+
+<main>
+
+<main>
+
+</main>
+
+<div class="modal" id="chartModal" role="dialog" aria-modal="true"
+     aria-labelledby="modalTitle" hidden>
+  <div class="modal-panel">
+    <div class="modal-head">
+      <h2 id="modalTitle">&#8212;</h2>
+      <button type="button" class="modal-close" id="modalClose" aria-label="Close">&#215;</button>
+    </div>
+    <div class="gaugebar" id="gaugeBar" role="group" aria-label="Choose a gauge"></div>
+    <div id="modalSlot"></div>
+  </div>
+</div>
+
+<footer class="wrap">
+  <p class="disclaimer">
+    Not a flood warning service. For warnings see
+    <a href="https://www.sepa.org.uk/environment/water/flooding/" rel="noopener">SEPA</a> and the
+    <a href="https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings" rel="noopener">Met Office</a>.
+    Data: SEPA, provisional, Open Government Licence.
+  </p>
+  <p class="fineprint" id="attribution"></p>
+  <p class="fineprint">
+    Satellite imagery:
+    <a href="https://s2maps.eu" rel="noopener">Sentinel-2 cloudless</a> by EOX IT Services GmbH
+    (contains modified Copernicus Sentinel data 2016 &amp; 2017), used under
+    <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC&nbsp;BY&nbsp;4.0</a>.
+    Fetched once and served from this site &mdash; no tiles are requested from anyone.
+  </p>
+  <p class="fineprint">
+    River and coast outlines ©
+    <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap contributors</a>,
+    used under the Open Database Licence. Simplified and served from this site —
+    no map tiles are requested from anyone.
+  </p>
+  <p class="fineprint">
+    <a href="method.html">How this works, and where it fails</a> ·
+    <a href="https://timeseriesdoc.sepa.org.uk/api-documentation/" rel="noopener">SEPA time series API</a> ·
+    <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" rel="noopener">OGL v3.0</a> ·
+    <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a>
+  </p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"
+        integrity="sha512-WoViKhKD4qI2WruSZqv9+kvM4WfFhUMQCLN4QlDTt5aU56fLQy2gYoxWIqlEnXqJy/+Ac5q/hk1oWfqnMDhwMA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="js/river.js"></script>
+<script src="js/monitor.js"></script>
+</body>
+</html>

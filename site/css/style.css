@@ -1,0 +1,718 @@
+/* Dee & Don Watch.
+
+   Two colours carry meaning and nothing else does:
+     WATER  #2c9ed3  a river behaving
+     SPATE  #9e6805  a river running high — peat and silt, which is what a
+                     Scottish river in flood actually looks like
+   Everything else is neutral grey on a neutral near-black ground. Navy and
+   cyan were dropped deliberately: that pairing is the default dashboard look.
+
+   Both marks were re-stepped into the dark OKLCH lightness band (0.48-0.67)
+   and validated rather than eyeballed — adjacent CVD deltaE 23.7, normal
+   vision 26.0, every mark at least 3:1 on the chart surface, every ink at
+   least 4.5:1 on the ground. "Not trusted" is grey on purpose: suppressed
+   data should recede, not compete. */
+
+@font-face { font-family: 'Syne'; src: url('../fonts/syne.woff2') format('woff2');
+  font-weight: 400 800; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../fonts/inter.woff2') format('woff2');
+  font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/jetbrains-mono.woff2') format('woff2');
+  font-weight: 100 800; font-display: swap; }
+
+:root {
+  /* Keyed to the satellite imagery, which averages #273634 — a dark, slightly
+     green grey. A light panel beside a dark photograph reads as two separate
+     documents pinned together; these neutrals are the same colour family as
+     the ground in the picture, one or two steps lifted so the panel sits in
+     front of the map rather than beside it. */
+  --bg: #141c1a;
+  --surface: #1b2522;
+  --surface-2: #223029;
+  --line: #31403b;
+  --line-soft: #263430;
+
+  --text: #e6ece8;         /* 13.1:1 on the panel */
+  --text-strong: #f3f7f4;
+  --muted: #a3b0a9;        /* 7.0:1  */
+  --faint: #8b9a92;        /* 5.4:1  */
+
+  /* Interface green, taken up from the vegetation rather than invented. */
+  --accent: #79d9b4;       /* 9.3:1 */
+  --accent-dim: rgba(121, 217, 180, 0.12);
+
+  /* Map fills are large areas judged against the imagery, not against the
+     categorical lightness band that keeps small marks from glaring. */
+  --map-water: #62c3ea;
+  --map-spate: #e2893c;
+  --map-land: #273634;
+  --map-coast: rgba(230, 236, 232, 0.35);
+
+  /* The two colours that carry meaning, chosen for the subject rather than the
+     screen: a river behaving is blue; a river in spate carries peat and silt
+     and runs brown. Re-stepped for this surface and validated — all six checks
+     pass: inside the dark band, adjacent CVD deltaE 20.9, normal-vision 23.3. */
+  --series: #3f9fcc;       /* water */
+  --alert: #e0a45c;        /* spate, as text — 7.2:1 */
+  --alert-mark: #bd7a2e;   /* spate, as a chart mark */
+  --neutral-mark: #8b9a92; /* not trusted: recedes */
+
+  --grid: #2a3733;
+  --axis: #8b9a92;
+
+  --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  --gutter: 1.5rem;
+  --radius: 8px;
+}
+
+
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 400 1rem/1.6 var(--sans);
+}
+
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.2; }
+h2 { font-size: 1.35rem; margin: 0 0 0.35em; color: var(--text-strong); }
+h3 { font-size: 0.98rem; margin: 0 0 0.4em; color: var(--text-strong); }
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:hover { color: #7fe9ff; }
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.wrap { width: min(60rem, 100%); margin-inline: auto; padding-inline: var(--gutter); }
+
+.skip { position: absolute; left: -9999px; background: var(--accent); color: #04121a;
+  padding: 0.6rem 1rem; font-weight: 600; }
+.skip:focus { left: 0; top: 0; z-index: 10; }
+
+/* The UA stylesheet gives [hidden] display:none at the lowest priority, so any
+   explicit display on the element beats it and the thing stays on screen. It
+   caught the overlay (display:flex, so it covered every page load) and the
+   projection legend row (.legend li is flex, so it claimed a dashed line on
+   all thirteen gauges when only two have one). Fixed once, here. */
+[hidden] { display: none !important; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex; flex-wrap: wrap; gap: 0.6rem 1rem;
+  align-items: baseline; justify-content: space-between;
+  padding-block: 1.6rem 0;
+}
+.wordmark {
+  font-family: var(--display); font-weight: 700; font-size: 1rem;
+  color: var(--text-strong); margin: 0; letter-spacing: -0.01em;
+}
+.wordmark span { color: var(--faint); font-weight: 400; }
+.masthead nav { font-size: 0.86rem; }
+
+.banner {
+  background: rgba(226, 137, 60, 0.12);
+  border-bottom: 1px solid rgba(226, 137, 60, 0.35);
+  color: var(--alert); padding: 0.7rem var(--gutter);
+  font-size: 0.88rem; text-align: center;
+}
+
+/* ---------- the answer ---------- */
+
+.answer { padding-block: clamp(2.2rem, 6vw, 3.6rem) 0; }
+
+.answer-line {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.7rem, 4.6vw, 2.75rem);
+  line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--text-strong); margin: 0; max-width: 24ch;
+}
+.answer-line em { font-style: normal; color: var(--alert); }
+.answer-line.calm em { color: var(--series); }
+
+.answer-sub { color: var(--muted); max-width: 58ch; margin: 0.9rem 0 0; font-size: 0.95rem; }
+.updated { color: var(--faint); font-size: 0.82rem; margin-top: 1.2rem; }
+.updated a { color: var(--muted); }
+
+/* ---------- app: map beside a panel ---------- */
+
+/* The detail used to open as a dialog over everything, which covered the list
+   it came from — so the only way to another gauge was to close it first. A
+   persistent panel keeps the map visible, and picking the next gauge is just
+   another click on it. */
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 25rem;
+  height: min(100vh, 880px);
+  min-height: 30rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-map {
+  position: relative; overflow: hidden;
+  /* The imagery's own average tone. The viewBox follows the window, so no
+     fixed image bbox can cover every shape; any sliver it misses reads as
+     ground rather than as bare page. */
+  background: var(--map-land);
+}
+.app-map .river-svg { width: 100%; height: 100%; display: block; }
+
+.panel {
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 1.1rem 1.6rem;
+}
+.panel-head {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--surface);
+  padding: 0.9rem 0 0.7rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.9rem;
+}
+.panel-method { font-size: 0.76rem; }
+
+.eyebrow {
+  display: flex; align-items: center; gap: 0.45rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.64rem; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--faint);
+}
+.eyebrow .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex: none;
+}
+
+.answer-line {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.25rem, 1.9vw, 1.55rem); line-height: 1.2;
+}
+.answer-sub { margin: 0 0 0.6rem; font-size: 0.82rem; max-width: none; }
+.updated { margin: 0; font-size: 0.72rem; color: var(--faint); }
+
+.trend {
+  display: flex; align-items: center; gap: 0.55rem;
+  margin: 0 0 0.6rem; font-size: 0.75rem; color: var(--muted);
+}
+.spark { width: 92px; height: 17px; flex: none; overflow: visible; }
+.spark-area { fill: var(--alert-mark); fill-opacity: 0.18; }
+.spark-line { fill: none; stroke: var(--alert-mark); stroke-width: 1.4; }
+.spark-now { fill: var(--alert); }
+
+.key-inline {
+  margin: 1rem 0 0.2rem; padding: 0.75rem 0 0;
+  border-top: 1px solid var(--line-soft);
+}
+.card-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.62rem; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--faint);
+}
+.stage-key { margin: 0; color: var(--muted); font-size: 0.71rem; line-height: 1.55; }
+
+.maplegend { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.3rem; }
+.maplegend li {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-size: 0.71rem; color: var(--muted);
+}
+.maplegend svg { flex: none; }
+
+.stage-key summary {
+  display: flex; align-items: center; gap: 0.35rem;
+  cursor: pointer; list-style: none;
+  color: var(--faint); font-size: 0.69rem;
+}
+.stage-key summary::-webkit-details-marker { display: none; }
+.stage-key summary::before { content: '+'; color: var(--accent); line-height: 1; }
+.stage-key details[open] summary::before { content: '\2212'; }
+.stage-key summary:hover { color: var(--text-strong); }
+.stage-key summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage-key details p { margin: 0.4rem 0 0; }
+
+.statpill {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  margin: 1.1rem 0 0; padding: 0.32rem 0.6rem;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.64rem; color: var(--faint);
+}
+
+/* ---------- panel: detail view ---------- */
+
+.detail-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.6rem; margin-bottom: 0.8rem;
+}
+.backlink {
+  background: none; border: 0; padding: 0.2rem 0;
+  color: var(--accent); font: inherit; font-size: 0.78rem; cursor: pointer;
+}
+.backlink:hover { color: var(--text-strong); }
+.backlink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#viewDetail h2 { margin: 0 0 0.2rem; font-size: 1.15rem; }
+.detail-sub { margin: 0 0 0.9rem; color: var(--muted); font-size: 0.78rem; }
+.toggles { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
+.rangetoggle { flex-wrap: wrap; }
+.gaugebar {
+  display: flex; flex-wrap: wrap; gap: 0.3rem;
+  margin: 0 0 0.9rem; padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.gaugebar button {
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--muted); border-radius: 999px;
+  font: inherit; font-size: 0.72rem; padding: 0.26rem 0.62rem; cursor: pointer;
+}
+.gaugebar button:hover { color: var(--text-strong); border-color: var(--accent); }
+.gaugebar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gaugebar button.hot { color: var(--alert); border-color: rgba(226, 137, 60, 0.45); }
+.gaugebar button[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--bg);
+}
+
+/* Explicit dates are a pop-out affordance: the panel has no room, and the
+   preset ranges answer the everyday question well enough. */
+.customrange { display: none; }
+.modal .customrange {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin: 0 0 0.7rem; font-size: 0.76rem; color: var(--muted);
+}
+.customrange input {
+  font: inherit; font-size: 0.76rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 0.25rem 0.4rem;
+}
+.customrange input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rangetoggle button { padding: 0.3rem 0.5rem; font-size: 0.72rem; }
+
+/* What is upstream right now. Observational: this is not a forecast, and the
+   panel says so rather than implying otherwise by omission. */
+.upstream {
+  margin-top: 1.2rem; padding-top: 0.9rem;
+  border-top: 1px solid var(--line-soft);
+  font-size: 0.76rem; color: var(--muted);
+}
+.upstream h3 {
+  margin: 0 0 0.5rem;
+  font: 600 0.62rem var(--sans); letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--faint);
+}
+.upstream ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.upstream li { display: flex; align-items: baseline; gap: 0.5rem; }
+.upstream .u-name { color: var(--text); }
+.upstream .u-km { color: var(--faint); font-size: 0.7rem; margin-left: auto; }
+.upstream .u-pct { font-family: var(--mono); font-size: 0.72rem; }
+.upstream .u-pct.hot { color: var(--alert); }
+.upstream .note { margin: 0.7rem 0 0; color: var(--faint); font-size: 0.71rem; }
+
+/* Below this the map cannot hold thirteen labels, and a 25rem column is most
+   of the screen anyway: the panel becomes the page and the map steps aside. */
+@media (max-width: 62rem) {
+  .app { display: block; height: auto; min-height: 0; }
+  .app-map { display: none; }
+  .panel {
+    border-left: 0; background: none;
+    overflow: visible; padding: 0 var(--gutter) 1.5rem;
+    max-width: 48rem; margin: 0 auto;
+  }
+  .panel-head { background: var(--bg); }
+}
+
+/* ---------- the river ---------- */
+
+.river-svg { width: 100%; height: auto; display: block; }
+
+/* A halo, not more collision logic. The placement test only knows about the
+   markers, so a name can still land on a channel — Haughton and Parkhill did.
+   Painting the stroke under the fill is how maps have always handled this, and
+   it holds wherever the label ends up. */
+/* Imagery is context, not the subject. Held back so the rivers and gauges
+   stay the brightest things on the map. */
+.rv-sat { opacity: 0.82; }
+
+/* The wider drainage network: present, but clearly not the measured thing. */
+.rv-net {
+  fill: none; stroke: var(--map-water); stroke-opacity: 0.26;
+  stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Hovering a gauge should say so before you click it. */
+/* The markers are buttons, but nothing invited the first click: the cursor
+   and the hover ring only appear once you are already on one. A standing ring
+   on the selected gauge, and a wider one that grows on hover, make the map
+   read as something you touch rather than something you look at. */
+.gauge-mark { cursor: pointer; }
+.gauge-mark .halo {
+  fill: none; stroke: var(--accent); stroke-width: 1.4;
+  opacity: 0; transition: opacity 140ms ease, r 140ms ease;
+}
+.gauge-mark:hover .halo, .gauge-mark:focus-visible .halo { opacity: 0.85; }
+.gauge-mark[aria-current="true"] .halo { opacity: 1; stroke-width: 2; }
+.gauge-mark .dot { transition: stroke 120ms ease, stroke-width 120ms ease; }
+.gauge-mark:hover .dot,
+.gauge-mark:focus-visible .dot { stroke: var(--accent); stroke-width: 3.2; }
+.gauge-mark:focus { outline: none; }
+.gauge-mark:hover .rv-name,
+.gauge-mark:focus-visible .rv-name { fill: var(--text-strong); }
+
+.rv-name, .rv-val, .rv-river, .rv-city, .rv-tick {
+  paint-order: stroke fill;
+  stroke: rgba(10, 14, 13, 0.85); stroke-width: 3.2px; stroke-linejoin: round;
+}
+
+.rv-name { font: 500 11px var(--sans); fill: #f2efe9; letter-spacing: 0.02em; }
+.rv-name.hot { fill: var(--alert); }
+.rv-val { font: 400 11px var(--mono); fill: var(--alert); }
+.rv-river { font: 700 14px var(--display); fill: #e7e3db; letter-spacing: 0.06em; }
+.rv-trib { font: 400 10px var(--sans); fill: var(--faint); }
+.rv-tick { font: 400 10px var(--mono); fill: #e7e3db; }
+.rv-axis-label { font: 400 10px var(--sans); fill: var(--faint); letter-spacing: 0.08em; }
+.rv-city { font: 700 11px var(--sans); fill: #e7e3db; letter-spacing: 0.22em; }
+.rv-coast { stroke: var(--map-coast); stroke-width: 1.2; }
+.rv-sea { font: 400 9px var(--sans); fill: var(--faint); letter-spacing: 0.2em; }
+
+.gauge-mark[aria-current="true"] .dot { stroke: var(--accent); stroke-width: 3; }
+
+.river-key { color: var(--faint); font-size: 0.78rem; margin: 0.2rem 0 0; max-width: 60ch; }
+
+/* ---------- space-time view ---------- */
+
+.spacetime { padding-block: clamp(2.4rem, 6vw, 3.6rem) 0; }
+.spacetime h2 { margin: 0 0 0.6rem; }
+.st-lede { color: var(--muted); max-width: 62ch; margin: 0 0 1.4rem; font-size: 0.95rem; }
+.st-note { color: var(--faint); max-width: 62ch; margin: 1.1rem 0 0; font-size: 0.8rem; }
+
+/* Below about 700 px this chart scales its labels down to ~5 px, which is no
+   longer a chart. Dense views scroll rather than shrink; the table under it is
+   the fallback for anyone who would rather not scroll. */
+#stChart { overflow-x: auto; }
+.st-svg { width: 100%; min-width: 680px; height: auto; display: block; overflow: visible; }
+.st-name { font: 600 11px var(--sans); fill: var(--text); }
+.st-km   { font: 400 10px var(--mono); fill: var(--faint); }
+.st-river {
+  font: 700 13px var(--display); fill: var(--faint);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.st-tick { font: 400 10px var(--mono); fill: var(--faint); }
+.st-grid { stroke: var(--line); stroke-width: 1; stroke-opacity: 0.55; }
+
+.st-foot {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0.8rem 1.6rem; margin-top: 1rem;
+}
+.st-legend { width: 190px; height: 32px; flex: none; }
+.st-details summary {
+  cursor: pointer; color: var(--muted); font-size: 0.8rem;
+}
+.st-details summary:hover { color: var(--text-strong); }
+.st-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.st-table { font-size: 0.72rem; margin-top: 0.7rem; }
+.st-table th[scope="row"] { text-align: left; white-space: nowrap; }
+.st-table td { text-align: right; font-family: var(--mono); color: var(--muted); }
+
+.st-tip {
+  position: absolute; z-index: 5; pointer-events: none;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 0.4rem 0.55rem;
+  font-size: 0.72rem; color: var(--text); line-height: 1.4; max-width: 15rem;
+}
+.st-tip span { color: var(--faint); font-family: var(--mono); font-size: 0.68rem; }
+
+/* ---------- gauge list ---------- */
+
+.gauges { border-top: 1px solid var(--line); }
+
+/* The scale the rows are read against, stated once. */
+.map-hint {
+  margin: 0.9rem 0 0; font-size: 0.74rem; line-height: 1.5;
+  color: var(--muted);
+}
+.map-hint strong { color: var(--text); font-weight: 600; }
+
+.g-scale {
+  position: relative; height: 1.1rem; margin: 0.8rem 0 0.2rem;
+  font-size: 0.6rem; color: var(--faint); font-family: var(--mono);
+}
+.g-scale span {
+  position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap;
+}
+.g-scale .thresh { color: var(--alert); }
+
+.g-group {
+  margin: 1.5rem 0 0; padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  font: 600 0.7rem var(--sans); letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--faint);
+}
+.g-group:first-of-type { margin-top: 0.6rem; }
+
+/* The list lives in a ~25 rem panel and nowhere else, so it is laid out for
+   that width rather than for the viewport. The six-column row this replaced
+   was behind a viewport media query, which never fired inside a narrow panel
+   on a wide screen — the values simply ran off the edge. */
+.gauge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 0.3rem 0.6rem;
+  width: 100%; text-align: left; font: inherit; color: inherit;
+  background: none; border: 0; border-bottom: 1px solid var(--line-soft);
+  padding: 0.6rem 0.2rem; cursor: pointer;
+}
+.gauge:hover { background: var(--surface-2); }
+.gauge:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.gauge[aria-pressed="true"] { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--series); }
+
+.g-name { font-weight: 600; color: var(--text-strong); font-size: 0.86rem; line-height: 1.25; }
+.g-name small { display: block; font-weight: 400; color: var(--faint); font-size: 0.68rem; }
+
+.g-val {
+  font-family: var(--mono); font-variant-numeric: proportional-nums;
+  font-size: 0.92rem; color: var(--text-strong); text-align: right; white-space: nowrap;
+}
+.g-val small { color: var(--faint); font-size: 0.74rem; margin-left: 0.2em; }
+
+/* Gridlines at 50 / 90 / 99 / 99.9, the 99 in alert because it is the
+   threshold a gauge has to cross to be called unusually high. */
+.g-track {
+  grid-column: 1 / -1;
+  position: relative; height: 14px; border-radius: 2px;
+  background-image:
+    linear-gradient(var(--line), var(--line)),
+    linear-gradient(var(--line), var(--line)),
+    linear-gradient(var(--alert), var(--alert)),
+    linear-gradient(var(--line), var(--line));
+  background-size: 1px 100%;
+  background-position: 9.1% 0, 30.3% 0, 60.6% 0, 90.9% 0;
+  background-repeat: no-repeat;
+}
+.g-track::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 6px;
+  height: 2px; background: var(--line-soft);
+}
+.g-track .fill {
+  position: absolute; left: 0; top: 6px; height: 2px;
+  background: var(--series); border-radius: 2px;
+}
+.g-track .pin {
+  position: absolute; top: 2px; width: 10px; height: 10px; margin-left: -5px;
+  border-radius: 50%; background: var(--series);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.gauge.flagged .g-track .fill, .gauge.flagged .g-track .pin { background: var(--alert-mark); }
+
+.g-pct {
+  grid-column: 1; font-family: var(--mono); font-size: 0.74rem; color: var(--text);
+}
+.g-roc { grid-column: 2; font-size: 0.71rem; color: var(--muted); text-align: right; white-space: nowrap; }
+.g-flag { grid-column: 1 / -1; display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+.g-flag:empty { display: none; }
+.g-flag .badge { white-space: nowrap; font-size: 0.64rem; }
+.g-flag .more { font-size: 0.68rem; color: var(--faint); }
+
+.caveat { grid-column: 1 / -1; margin: 0.1rem 0 0; }
+
+/* Only an exception gets a badge. "Normal" is signalled by its absence. */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; color: var(--alert);
+  border: 1px solid currentColor; border-radius: 999px; padding: 0.1rem 0.5rem;
+}
+.badge-quiet { color: var(--faint); }
+
+.caveat { grid-column: 1 / -1; font-size: 0.78rem; color: var(--faint); margin: 0.2rem 0 0; }
+
+/* ---------- chart ---------- */
+
+.detail { padding-block: 2.2rem; }
+
+.detail-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  align-items: baseline; gap: 0.6rem;
+}
+.detail-head h2 { margin: 0; }
+.detail-sub { color: var(--faint); font-size: 0.8rem; margin: 0.3rem 0 0; }
+
+.viewtoggle { display: flex; gap: 0.25rem; }
+.viewtoggle button {
+  font: 600 0.74rem var(--sans); color: var(--muted);
+  background: none; border: 1px solid var(--line);
+  border-radius: 999px; padding: 0.3rem 0.8rem; cursor: pointer;
+}
+.viewtoggle button[aria-pressed="true"] { color: var(--text-strong); border-color: var(--series); }
+.viewtoggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Two stacked panels sharing one time axis — a hyetograph above a hydrograph.
+   NOT a dual-axis chart: two y-scales on one plot would invent a correlation,
+   because the alignment between them is arbitrary. */
+#chartbox { margin-top: 1rem; }
+/* Sentence case, not uppercase: these labels carry a full sentence of context
+   and letter-spaced caps make that shout. */
+.panel-label { font-size: 0.78rem; color: var(--faint); margin: 0 0 0.35rem; }
+.panel-label strong { color: var(--muted); font-weight: 600; }
+.panel-label + .levelbox { margin-bottom: 0; }
+.rainbox { position: relative; height: 74px; margin-bottom: 1rem; }
+.levelbox { position: relative; height: clamp(260px, 38vw, 340px); }
+#chartbox canvas { max-width: 100%; }
+.rain-key { background: rgba(98, 195, 234, 0.45); }
+.proj-key { background: none; border-top: 2px dashed var(--series); height: 0; }
+
+.legend {
+  list-style: none; display: flex; flex-wrap: wrap;
+  gap: 0.4rem 1.1rem; padding: 0; margin: 0.9rem 0 0;
+  font-size: 0.76rem; color: var(--faint);
+}
+.legend li { display: flex; align-items: center; gap: 0.4rem; }
+.key { width: 1rem; height: 0.6rem; border-radius: 2px; flex: none; }
+.line-key { height: 0; border-top: 2px solid var(--series); }
+.dash-key { height: 0; border-top: 2px dashed var(--alert-mark); }
+.band-key.alert { background: rgba(158, 104, 5, 0.42); }
+.band-key.neutral { background: rgba(125, 133, 138, 0.3); }
+
+.chartbox-small { position: relative; height: clamp(240px, 32vw, 300px); margin-top: 1.1rem; }
+.chartbox-small canvas { max-width: 100%; }
+.neg { color: var(--alert); }
+
+/* Rain and level read as one figure: no gap between the panels, one frame,
+   one time axis along the bottom. */
+.hydro {
+  margin: 0 0 0.9rem;
+  border: 1px solid var(--line-soft); border-radius: var(--radius);
+  padding: 0.5rem 0.4rem 0.2rem;
+}
+.hydro .levelbox { margin: 0; }
+.hydro figcaption { margin: 0.35rem 0 0.2rem; }
+
+/* The chart, full size. Only ever one chart — it is moved here and back. */
+.modal {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(10, 14, 13, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(0.6rem, 3vw, 2rem);
+}
+
+.modal-panel {
+  background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  width: min(74rem, 100%); max-height: 92vh; overflow-y: auto;
+  padding: 0.9rem clamp(0.8rem, 2vw, 1.4rem) 1.2rem;
+}
+.modal-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; margin-bottom: 0.7rem;
+}
+.modal-head h2 { margin: 0; font-size: 1.15rem; }
+.modal-close {
+  background: none; border: 0; color: var(--faint);
+  font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.3rem;
+}
+.modal-close:hover { color: var(--text-strong); }
+.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.modal-open { overflow: hidden; }
+
+/* Given the room, the chart takes it. */
+.modal #chartZone .levelbox { height: clamp(320px, 56vh, 540px); }
+
+.expand {
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--muted); border-radius: var(--radius);
+  font: inherit; font-size: 0.72rem; padding: 0.3rem 0.6rem; cursor: pointer;
+}
+.expand:hover { color: var(--text-strong); border-color: var(--accent); }
+.expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- tables ---------- */
+
+.tablewrap { overflow-x: auto; margin-top: 1rem; }
+table { width: 100%; min-width: 34rem; border-collapse: collapse; font-size: 0.84rem; }
+th, td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+thead th {
+  font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--faint); font-weight: 600; border-bottom-color: var(--line);
+}
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+tbody td:first-child { font-family: var(--sans); color: var(--text-strong); }
+tbody tr:hover { background: var(--surface); }
+.flagcell { color: var(--alert); }
+.miss { color: var(--alert); font-weight: 600; }
+.base { display: block; color: var(--faint); font-size: 0.72rem; font-family: var(--sans); }
+.fineprint { color: var(--faint); font-size: 0.78rem; max-width: 70ch; }
+
+/* ---------- method page ---------- */
+
+.lede { color: var(--text); max-width: 60ch; font-size: 1rem; }
+main > section { padding-block: 2.4rem; }
+main > section + section { border-top: 1px solid var(--line); }
+.sub { color: var(--muted); margin-top: 0; max-width: 62ch; font-size: 0.93rem; }
+
+.prose p { color: var(--muted); max-width: 62ch; font-size: 0.93rem; }
+.prose strong { color: var(--text); }
+
+.grid { display: grid; gap: 1.4rem 2rem; grid-template-columns: 1fr; margin-top: 1.2rem; }
+@media (min-width: 46rem) { .grid { grid-template-columns: repeat(2, 1fr); } }
+.grid p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.grid strong { color: var(--text); }
+
+.subhead { font-family: var(--display); font-size: 0.95rem; margin: 1.8rem 0 0.3rem; color: var(--text-strong); }
+
+.river { margin-top: 1.2rem; }
+.river-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  align-items: baseline; gap: 0.5rem; margin-bottom: 0.7rem;
+  border-bottom: 1px solid var(--line); padding-bottom: 0.4rem;
+}
+.river-name { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--text-strong); }
+.river-stat { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.74rem; color: var(--faint); }
+
+.cascade { display: grid; gap: 0.3rem; }
+.cascade-row { display: grid; grid-template-columns: 7rem 1fr; align-items: center; gap: 0.6rem; font-size: 0.78rem; }
+.cascade-label { color: var(--text); }
+.cascade-label small { display: block; color: var(--faint); font-size: 0.68rem; }
+.cascade-track {
+  position: relative; height: 1.35rem; border-radius: 3px;
+  background: linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px 100%) 0 0 / 10% 100%;
+}
+.cascade-marker { position: absolute; top: 0; height: 100%; display: flex; align-items: center;
+  gap: 0.35rem; transform: translateX(-50%); white-space: nowrap; }
+.cascade-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--series);
+  box-shadow: 0 0 0 2px var(--bg); flex: none; }
+.cascade-time { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.68rem; color: var(--faint); }
+.cascade-axis { display: flex; justify-content: space-between; font-family: var(--mono);
+  font-size: 0.66rem; color: var(--faint); margin-top: 0.25rem; padding-left: 7.6rem; }
+
+@media (max-width: 34rem) {
+  .cascade-row { grid-template-columns: 5rem 1fr; font-size: 0.72rem; }
+  .cascade-axis { padding-left: 5.6rem; }
+  .cascade-time { display: none; }
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.9rem; }
+.chip {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.45rem 0.7rem; font-size: 0.74rem; color: var(--faint);
+}
+.chip b { display: block; font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-weight: 400; font-size: 0.9rem; color: var(--text); }
+
+.limits { margin: 1.1rem 0 0; padding: 0; list-style: none; }
+.limits li {
+  border-left: 2px solid var(--line); padding-left: 0.9rem;
+  margin-bottom: 0.8rem; color: var(--muted); font-size: 0.89rem; max-width: 64ch;
+}
+.limits strong { color: var(--text); }
+
+/* ---------- footer ---------- */
+
+footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
+.disclaimer { color: var(--text); border-left: 2px solid var(--alert); padding-left: 0.9rem;
+  max-width: 60ch; font-size: 0.89rem; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
