@@ -9,8 +9,8 @@ not quietly grade itself against a storm someone remembered.
 
 Two numbers are reported together, always:
 
-  * the lead time — how long before the peak each flag first fired
-  * the base rate — how much of the whole record that flag is on for
+  * the lead time - how long before the peak each flag first fired
+  * the base rate - how much of the whole record that flag is on for
 
 A lead time alone is meaningless. An earlier version of these detectors
 "predicted" Storm Babet 66 hours ahead, which sounded impressive until you
@@ -187,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     for station in config["stations"]:
         path = cache_dir / f"{slugify(station['name'])}.parquet"
         if not path.exists():
-            print(f"No cache for {station['name']} — run fetch.py first", file=sys.stderr)
+            print(f"No cache for {station['name']} - run fetch.py first", file=sys.stderr)
             return 1
         frame = pd.read_parquet(path)
         values = frame["value"]

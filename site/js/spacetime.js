@@ -3,7 +3,7 @@
    Each row is one main-stem gauge, placed at its true distance from Aberdeen,
    with hourly percentile running left to right. Water moving downstream shows
    up as brightness moving down and to the right, so the slope of that diagonal
-   is the wave's apparent speed — the thing the method page measures at 5.97
+   is the wave's apparent speed - the thing the method page measures at 5.97
    km/h on the Dee is visible here rather than tabulated.
 
    Main stem only. The flood-wave work found the gauges form a sequence only
@@ -168,7 +168,7 @@ window.DDWSpaceTime = (function () {
             return v !== null && !isNaN(v);
           });
           html += '<td>' + (slice.length
-            ? Math.max.apply(null, slice).toFixed(0) : '—') + '</td>';
+            ? Math.max.apply(null, slice).toFixed(0) : '-') + '</td>';
         }
         html += '</tr>';
       });
@@ -187,7 +187,7 @@ window.DDWSpaceTime = (function () {
              '" y="26" text-anchor="middle" class="st-tick">' + v + '</text>';
     }).join('');
     return '<svg class="st-legend" viewBox="0 0 190 32" role="img" ' +
-      'aria-label="Colour scale: 0 to 100 percent of each gauge’s own record">' +
+      'aria-label="Colour scale: 0 to 100 percent of each gauge\'s own record">' +
       '<defs><linearGradient id="stRamp">' + stops + '</linearGradient></defs>' +
       '<rect x="10" y="0" width="170" height="10" fill="url(#stRamp)"/>' +
       ticks + '</svg>';

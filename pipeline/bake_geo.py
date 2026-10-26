@@ -9,7 +9,7 @@ requests at runtime.
 Why not a tile layer
 --------------------
 Leaflet plus OSM tiles would look like a map immediately, but every page view
-would then call a tile server — a third-party request on behalf of a visitor,
+would then call a tile server - a third-party request on behalf of a visitor,
 which this project does not make. Fetching the geometry once, simplifying it
 and serving it from our own origin gives the same picture with no runtime
 dependency and nothing to log.
@@ -50,7 +50,7 @@ EPSILON_NETWORK = 0.0015
 # The four gauged tributaries, by the name OSM actually uses, mapped to the
 # river name SEPA uses in config.yaml. These differ: the watercourse at Pitcaple
 # is "River Ury" in OSM and "Urie" in SEPA's station metadata. Neither is
-# renamed — the mapping is recorded here instead. "Water of Gairney" is a
+# renamed - the mapping is recorded here instead. "Water of Gairney" is a
 # separate burn that a loose "Gairn" match picks up by mistake, hence exact
 # names rather than a regex.
 TRIBUTARIES = {
@@ -233,7 +233,7 @@ def main() -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
     size = path.stat().st_size / 1024
-    print(f"\nWrote {path.relative_to(REPO_ROOT)} — {size:.0f} KB")
+    print(f"\nWrote {path.relative_to(REPO_ROOT)} - {size:.0f} KB")
     print("Committed deliberately: this is static, and the site makes no")
     print("third-party requests at runtime.")
     return 0

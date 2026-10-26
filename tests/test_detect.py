@@ -1,7 +1,7 @@
 """Unit tests for the detectors.
 
-The cases are the ones agreed in the plan — clean, gap, flatline, spike, fast
-rise — plus two for SEPA's quality codes, which the fetch step showed carry the
+The cases are the ones agreed in the plan - clean, gap, flatline, spike, fast
+rise - plus two for SEPA's quality codes, which the fetch step showed carry the
 outage information that missing rows would normally carry.
 """
 

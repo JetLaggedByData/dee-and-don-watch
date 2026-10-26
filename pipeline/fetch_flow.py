@@ -17,14 +17,14 @@ and *is* comparable, and these peak series reach back **55 years**, which turns
 "99.8th percentile of ten years" into "the Nth largest since 1971".
 
 These are deliberately kept apart from `fetch.py`. Level and rainfall are
-regular grids; POT and annual maxima are **irregular event series** — a flood
-peak happens when it happens — so the gap and flatline arithmetic that
+regular grids; POT and annual maxima are **irregular event series** - a flood
+peak happens when it happens - so the gap and flatline arithmetic that
 `fetch.py` applies would be meaningless here.
 
 **Caveat worth carrying downstream:** flow is derived from level through a
 rating curve, and SEPA's own documentation says flows beyond the acceptable
-extrapolation limit are coded Suspect (150). The largest floods — exactly the
-ones these series exist to describe — are the most likely to be estimated.
+extrapolation limit are coded Suspect (150). The largest floods - exactly the
+ones these series exist to describe - are the most likely to be estimated.
 
 Data: SEPA, provisional, Open Government Licence.
 """
@@ -111,11 +111,11 @@ def main(argv: list[str] | None = None) -> int:
     for key, ts_name in wanted.items():
         rows = [r for r in catalogue if r.get("ts_name") == ts_name and r.get("from")]
         rows.sort(key=lambda r: r["from"])
-        print(f"\n{ts_name} — {len(rows)} gauge(s)\n")
+        print(f"\n{ts_name} - {len(rows)} gauge(s)\n")
 
         summaries = []
         for row in rows:
-            print(f"  {row['station_name']} ({row['from'][:4]}–{row['to'][:4]}) ...",
+            print(f"  {row['station_name']} ({row['from'][:4]}-{row['to'][:4]}) ...",
                   end=" ", flush=True)
             try:
                 summary = fetch_series(client, row, key)

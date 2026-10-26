@@ -9,7 +9,7 @@ assertions look at the DOM instead: if drawChart throws, the gauge name is
 never written and the rainfall caption keeps its placeholder, so both are
 reliable witnesses that the chart was built.
 
-Development check, deliberately outside the repo — the shipped tests cover the
+Development check, deliberately outside the repo - the shipped tests cover the
 pipeline, and this needs a browser and a running server.
 """
 
@@ -31,7 +31,7 @@ CASES: list[tuple[str, list[tuple[str, str]]]] = [
         ("gauge list rendered", r'class="gauge[ "]'),
     ]),
     ("#garthdee:24h", [
-        ("gauge name written", r'id="detailName">(?!\u2014)[A-Za-z]'),
+        ("gauge name written", r'id="detailName">(?!-)[A-Za-z]'),
         ("rain caption filled", r"bars peak at"),
         ("position readout", r'id="gaugePos"[^>]*>\d+ of 13'),
         # Garthdee is 1.25 h behind (Woodend is quiet) which is inside the
@@ -40,23 +40,23 @@ CASES: list[tuple[str, list[tuple[str, str]]]] = [
         ("projection explained", r"routes water"),
     ]),
     ("#parkhill:24h", [
-        ("gauge name written", r'id="detailName">(?!—)[A-Za-z]'),
+        ("gauge name written", r'id="detailName">(?!-)[A-Za-z]'),
         ("projection drawn", r'id="legendProjected"(?![^>]*\shidden)'),
         ("projection explained", r"routes water"),
     ]),
     ("#woodend:24h", [
-        ("gauge name written", r'id="detailName">(?!\u2014)[A-Za-z]'),
+        ("gauge name written", r'id="detailName">(?!-)[A-Za-z]'),
         ("no projection on a gauge without one",
          r'id="legendProjected"[^>]*\shidden'),
     ]),
     ("#garthdee:1y:big", [
-        ("gauge name written", r'id="detailName">(?!\u2014)[A-Za-z]'),
+        ("gauge name written", r'id="detailName">(?!-)[A-Za-z]'),
         ("pop-out open", r'<div class="modal" id="chartModal"(?![^>]*\shidden)'),
         ("gauge picker populated", r'id="gaugeBar"[^>]*>\s*<button'),
         ("long range caption", r"not every reading"),
     ]),
     ("#pitcaple:5y", [
-        ("tributary on the long path", r'id="detailName">(?!\u2014)[A-Za-z]'),
+        ("tributary on the long path", r'id="detailName">(?!-)[A-Za-z]'),
     ]),
     ("method.html", [
         ("space-time drew rows", r'class="st-name"'),

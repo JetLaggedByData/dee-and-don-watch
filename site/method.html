@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How it works — Dee &amp; Don Watch</title>
+<title>How it works - Dee &amp; Don Watch</title>
 <meta name="description" content="Method, backtest and limitations for Dee & Don Watch: how a flood travels downstream, why a z-score failed, and where the detectors measurably miss.">
 <meta name="color-scheme" content="dark">
 <link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
@@ -14,8 +14,8 @@
 <a class="skip" href="#wave">Skip to the flood wave</a>
 
 <header class="wrap masthead">
-  <p class="wordmark">Dee &amp; Don Watch <span>· how it works</span></p>
-  <nav><a href="index.html">← Back to the gauges</a></nav>
+  <p class="wordmark">Dee &amp; Don Watch <span>| how it works</span></p>
+  <nav><a href="index.html">Back to the gauges</a></nav>
 </header>
 
 <main>
@@ -101,9 +101,9 @@
       <article>
         <h3>Why not a z-score</h3>
         <p>
-          The first version used a median/MAD z-score — the textbook choice — and fired on
+          The first version used a median/MAD z-score - the textbook choice - and fired on
           <strong>10.91%</strong> of all readings. These sensors resolve to 1&nbsp;mm and the
-          rivers register no change at all in 13–50% of samples, so the MAD collapsed to one
+          rivers register no change at all in 13-50% of samples, so the MAD collapsed to one
           to four sensor ticks and "3 sigma" meant <strong>a 3&nbsp;mm rise in an hour</strong>.
           It was measuring the instrument, not the river.
         </p>
@@ -129,7 +129,7 @@
   </section>
 
   <section class="wrap" id="backtest" aria-labelledby="backtestHeading">
-    <h2 id="backtestHeading">Backtest — including what missed</h2>
+    <h2 id="backtestHeading">Backtest - including what missed</h2>
     <p class="sub" id="backtestSub"></p>
     <div class="tablewrap">
       <table id="backtestTable">
@@ -187,14 +187,14 @@
       <li><strong>Lead time is a fragile number.</strong> It is set by the earliest marginal
         detection, so it can swing by days while the detector barely moves. One gauge has
         reported "at least 72 hours", then 10.8 hours, then "at least 72 hours" again on
-        identical raw data, as the reference record grew from five years to eight to ten —
+        identical raw data, as the reference record grew from five years to eight to ten -
         because one rise sat exactly on the threshold and its rank shifted by 0.009 of a
         percentile.</li>
-      <li><strong>Thresholds depend on which years you score against.</strong> Adding 2016–2018
+      <li><strong>Thresholds depend on which years you score against.</strong> Adding 2016-2018
         moved every one of the 26 thresholds downward, by up to 6.4%, because those two years
         were quieter. That is the river behaving differently in different decades, not noise
         that more data removes. Ten years is a stated choice, not a maximum.</li>
-      <li><strong>The strict rise flag missed the biggest peaks</strong> — no fire at Garthdee,
+      <li><strong>The strict rise flag missed the biggest peaks</strong> - no fire at Garthdee,
         Park or Polhollick, three of the highest gauges of the event.</li>
       <li><strong>Travel times are uncertain per reach.</strong> The ordering is unambiguous;
         the two independent timings agree on only three of seven reaches.</li>
@@ -204,14 +204,14 @@
       <li><strong>Spikes are invisible at the live edge.</strong> The detector uses a centred
         window, so the most recent 90 minutes are never spike-checked.</li>
       <li><strong>The floor excludes slow water.</strong> The 0.05 m/hr minimum that fixes the
-        quantisation problem means a slow-responding body can never raise a rise flag — which
+        quantisation problem means a slow-responding body can never raise a rise flag - which
         is why Loch Kinord was removed rather than shown as permanently calm.</li>
       <li><strong>Scheduled runs are best-effort.</strong> GitHub warns scheduled workflows can
         be delayed and some jobs dropped, and that they are disabled after 60 days without
         repository activity.</li>
       <li><strong>Level only.</strong> No rainfall, no flow, no forecast input. Rainfall
         (SEPA parameter <span class="mono">RE</span>, the same API) would let this explain
-        rises rather than only report them — that is the obvious next step.</li>
+        rises rather than only report them - that is the obvious next step.</li>
     </ul>
   </section>
 
@@ -226,8 +226,8 @@
   </p>
   <p class="fineprint" id="attribution"></p>
   <p class="fineprint">
-    <a href="index.html">Back to the gauges</a> ·
-    <a href="https://timeseriesdoc.sepa.org.uk/api-documentation/" rel="noopener">SEPA time series API</a> ·
+    <a href="index.html">Back to the gauges</a> |
+    <a href="https://timeseriesdoc.sepa.org.uk/api-documentation/" rel="noopener">SEPA time series API</a> |
     <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" rel="noopener">OGL v3.0</a>
   </p>
 </footer>

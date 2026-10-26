@@ -1,4 +1,4 @@
-# Dee & Don Watch — pipeline configuration
+# Dee & Don Watch - pipeline configuration
 #
 # Data: SEPA, provisional, Open Government Licence.
 # API docs: https://timeseriesdoc.sepa.org.uk/api-documentation/
@@ -192,7 +192,7 @@ rain_stations:
 #
 # Excluded as not a river: Meikle Kinord (station_no 356327, ts_id 59425010) is
 # on LOCH KINORD. Over 8 years its level moved a total of 0.81 m and its fastest
-# hourly rise was 0.024 m/hr — less than half the 0.05 m/hr floor — so it can
+# hourly rise was 0.024 m/hr - less than half the 0.05 m/hr floor - so it can
 # never raise a flag. Its parquet is still cached if it is ever wanted.
 stations:
   - name: Garthdee

@@ -1,4 +1,4 @@
-/* Dee & Don Watch — the monitor page.
+/* Dee & Don Watch - the monitor page.
    One question: is anything unusual right now?
    Reads the JSON written by pipeline/export.py. Chart.js is the only dependency. */
 
@@ -66,9 +66,9 @@
   }
 
   function signed(v) {
-    if (v === null || v === undefined) return '—';
+    if (v === null || v === undefined) return '-';
     var t = Math.abs(v).toFixed(3);
-    return v > 0 ? '+' + t : v < 0 ? '−' + t : t;
+    return v > 0 ? '+' + t : v < 0 ? '-' + t : t;
   }
 
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
@@ -138,7 +138,7 @@
         ' gauges normal.</em>';
       $('answerSub').textContent =
         'Each gauge is judged against its own ' + recordYears(index.stations[0].record) +
-        '-year record. A quiet page is not an all-clear — this is not a warning service.';
+        '-year record. A quiet page is not an all-clear - this is not a warning service.';
       return;
     }
 
@@ -152,7 +152,7 @@
     line.innerHTML = '<em>' + flagged.length + ' of ' + total + ' gauges</em> ' +
       (flagged.length === 1 ? 'is' : 'are') + ' showing something unusual.';
     $('answerSub').textContent = parts.join(', ') +
-      ' — measured against each gauge’s own ' + recordYears(index.stations[0].record) +
+      ' - measured against each gauge\'s own ' + recordYears(index.stations[0].record) +
       '-year record. This describes what has already been recorded. It is not a forecast.';
   }
 
@@ -208,8 +208,8 @@
 
     return '' +
       '<span class="g-name">' + station.name +
-        '<small>' + station.river + ' · ' + station.km_to_aberdeen + ' km</small></span>' +
-      '<span class="g-val">' + (l.value === null ? '—' : l.value.toFixed(3)) +
+        '<small>' + station.river + ' | ' + station.km_to_aberdeen + ' km</small></span>' +
+      '<span class="g-val">' + (l.value === null ? '-' : l.value.toFixed(3)) +
         '<small>m</small></span>' +
       '<span class="g-track" role="img" aria-label="Higher than ' + pctText(pct) +
         ' of its own record">' +
@@ -249,7 +249,7 @@
       if (!group[0].length) return;
       var head = document.createElement('h3');
       head.className = 'g-group';
-      head.textContent = group[1] + ' · ' + group[0].length;
+      head.textContent = group[1] + ' | ' + group[0].length;
       list.appendChild(head);
 
       group[0].forEach(function (station) {
@@ -334,12 +334,12 @@
         '<li>' + swatch(10, MS) + 'Something flagged</li>' +
       '</ul>' +
       '<details><summary>What the widths mean</summary><p>' +
-        'Width = level within that gauge’s <strong>own ten-year record</strong>, so ' +
+        'Width = level within that gauge\'s <strong>own ten-year record</strong>, so ' +
         'widths are not comparable between gauges. Both rivers run east into Aberdeen.' +
       '</p></details>';
 
     $('statPill').textContent =
-      index.stations.length + ' gauges · 15-minute readings · SEPA, provisional';
+      index.stations.length + ' gauges | 15-minute readings | SEPA, provisional';
 
     Array.prototype.forEach.call(host.querySelectorAll('.gauge-mark'), function (g) {
       g.addEventListener('click', function () { select(g.dataset.slug); });
@@ -357,7 +357,7 @@
      Washes were drowning the chart they annotate: Garthdee flags about 6% of
      its readings, so a fortnight of it rendered as dozens of grey stripes and
      the level line was barely findable among them. The information is the
-     same — these spans, at these times — but it now sits beneath the data
+     same - these spans, at these times - but it now sits beneath the data
      instead of on top of it. */
   var RIBBON_H = 7;
 
@@ -403,7 +403,7 @@
 
      This is still two scales, which is worth saying plainly. What keeps it
      honest is that the bars never reach the line, so you read WHEN rain fell
-     against when the river rose rather than one height against the other —
+     against when the river rose rather than one height against the other -
      and the rain scale is not drawn as a second axis, because that is what
      made one chart look like two. The peak is in the caption; exact values
      are on hover. */
@@ -457,7 +457,7 @@
   }
 
   /* The daily envelope: minimum to maximum each day, with the mean through
-     it. The band is the honest part — a mean alone would hide the short sharp
+     it. The band is the honest part - a mean alone would hide the short sharp
      rises this project exists to notice. */
   function drawHistory(station, history, win) {
     var start = new Date(history.from + 'T00:00:00Z').getTime();
@@ -486,7 +486,7 @@
     rainBars = rain.bars;
     $('rainLabel').hidden = false;
     $('rainLabel').innerHTML = (rain.text ? rain.text + '<br>' : '') +
-      '<strong>' + spanLabel(win) + '</strong> · daily range and mean, not every ' +
+      '<strong>' + spanLabel(win) + '</strong> | daily range and mean, not every ' +
       'reading. Quality flags and the projection are only drawn at 14 days or less.';
     $('rainUnit').textContent = 'Rainfall (mm/day)';
 
@@ -532,7 +532,7 @@
             min: mid[0].x, max: mid[mid.length - 1].x,
             // Ticks spaced evenly across the DATA, not at round numbers in
             // epoch milliseconds. Left to itself the scale picked 1.4e12 and
-            // friends, which are real dates — 13 May 2014 — just not ones in
+            // friends, which are real dates - 13 May 2014 - just not ones in
             // this record, which starts in 2016.
             afterBuildTicks: function (scale) {
               var a = scale.min, b = scale.max, out = [];
@@ -547,7 +547,7 @@
           },
           rain: {
             // Reversed, so a bar hangs DOWN from the top into a band of its
-            // own. Not drawn as an axis — the peak is in the caption and the
+            // own. Not drawn as an axis - the peak is in the caption and the
             // exact value is on hover.
             position: 'right', reverse: true, beginAtZero: true,
             max: rain.max ? rain.max * 5 : 1,
@@ -677,7 +677,7 @@
     if (chart) chart.destroy();
 
     /* Projection: only where there is a gauge upstream to route from, and only
-       as far as the measured skill holds. The band is the model's own test
+       as far as the measured skill holds. The band is the model\'s own test
        error, so the drawn uncertainty is measured rather than decorative.
 
        Computed before the rainfall chart, because both charts share an x-range
@@ -689,14 +689,14 @@
          projection was issued.
 
          A projection issued at 16:15 still has its first hours on file by
-         17:30 — the gauge kept reporting. Drawing it from the issue point put
+         17:30 - the gauge kept reporting. Drawing it from the issue point put
          a dashed line and a solid line over the same hours, disagreeing with
          each other, which is not a forecast of anything. Hours that have since
          been measured are dropped and the remainder is joined to the last real
          reading, so the chart reads as one line that turns dashed where
          knowledge runs out.
 
-         The projected values themselves are untouched — nothing is shifted to
+         The projected values themselves are untouched - nothing is shifted to
          meet the reading, only the already-overtaken part is left off. */
       var anchor = null;
       for (var n = detail.v.length - 1; n >= 0 && !anchor; n--) {
@@ -720,7 +720,7 @@
     }
     /* A projection is only shown where it can be honest about the present.
 
-       Two ways it cannot be. The window may not reach the present at all — you
+       Two ways it cannot be. The window may not reach the present at all - you
        are looking at last March. Or the projection may be older than the
        readings: routing needs EVERY upstream gauge, so one gauge going quiet
        freezes it while the level trace carries on. Issued at 10:15 against a
@@ -731,7 +731,7 @@
        that would move a modelled curve to a point it was not computed from. */
     // Three hours, not one. One was the instinct and it was wrong the first
     // time it met real data: Woodend went quiet, Garthdee fell 1.25 h behind
-    // and lost its projection entirely — the gauge nearest Aberdeen, over a
+    // and lost its projection entirely - the gauge nearest Aberdeen, over a
     // gap that still left eleven of its twelve hours in the future. At three
     // hours a projection still has most of its horizon ahead of the reader.
     var STALE_PROJECTION_MS = 3 * 60 * 60 * 1000;
@@ -768,10 +768,10 @@
       $('projNote').innerHTML =
         'The dashed line routes water <strong>already measured</strong> at ' +
         fc.upstream.join(', ') + ' down to here. It uses no weather forecast, and ' +
-        'stops at 12 h because past this catchment’s ' + fc.travel_time_hours +
-        ' h travel time the water has not entered the river yet. The band is ' +
-        'the model’s own error on data it was not trained on. ' +
-        '<strong>This is not a flood warning</strong> — for warnings see ' +
+        'stops at 12 h because past this catchment\'s ' + fc.travel_time_hours +
+        ' h travel time the water has not entered the river yet. The band is ' +
+        'the model\'s own error on data it was not trained on. ' +
+        '<strong>This is not a flood warning</strong> - for warnings see ' +
         '<a href="https://www.sepa.org.uk/environment/water/flooding/" rel="noopener">SEPA</a>' +
         ' and the <a href="https://www.metoffice.gov.uk/weather/warnings-and-advice/' +
         'uk-warnings" rel="noopener">Met Office</a>.';
@@ -811,7 +811,7 @@
           ? false : { duration: 250 },
         interaction: { mode: 'index', axis: 'x', intersect: false },
         scales: {
-          // Linear axis over epoch ms — no date-adapter dependency.
+          // Linear axis over epoch ms - no date-adapter dependency.
           x: {
             type: 'linear', min: firstX, max: lastX,
             ticks: { maxTicksLimit: 4, align: 'inner', color: C.axis,
@@ -822,7 +822,7 @@
           },
           // `rain` is declared AFTER `y` on purpose. A dataset with no
           // yAxisID falls back to the first y-type scale in this object, and
-          // this one is reversed — every level dataset now names 'y'
+          // this one is reversed - every level dataset now names 'y'
           // explicitly as well, but the order is the second line of defence.
           rain: {
             // Reversed, so a bar hangs DOWN from the top, and given several
@@ -866,7 +866,7 @@
                 // The lower band edge exists only to close the fill.
                 if (i.dataset.label === '_bandLo') return null;
                 // Rain is the other measure sharing this plot, so it has to
-                // carry its own unit here — the axis no longer states it.
+                // carry its own unit here - the axis no longer states it.
                 if (i.dataset.label === 'Rainfall') {
                   return 'Rainfall: ' + i.parsed.y.toFixed(1) + (rain.unit || ' mm/hr');
                 }
@@ -922,18 +922,18 @@
         var mean = d.vals.reduce(function (a, b) { return a + b; }, 0) / d.vals.length;
         var flags = Object.keys(d.flags).map(function (k) { return LABEL[k]; });
         return '<tr><td>' + day + '</td>' +
-          '<td>' + (rainByDay[day] === undefined ? '—' : rainByDay[day].toFixed(1)) + '</td>' +
+          '<td>' + (rainByDay[day] === undefined ? '-' : rainByDay[day].toFixed(1)) + '</td>' +
           '<td>' + Math.min.apply(null, d.vals).toFixed(3) + '</td>' +
           '<td>' + mean.toFixed(3) + '</td>' +
           '<td>' + Math.max.apply(null, d.vals).toFixed(3) + '</td>' +
-          '<td class="flagcell">' + (flags.length ? flags.join(', ') : '—') + '</td></tr>';
+          '<td class="flagcell">' + (flags.length ? flags.join(', ') : '-') + '</td></tr>';
       }).join('');
   }
 
   /* What is upstream of this gauge, right now.
 
      Strictly observational. Water takes time to travel, so an upstream gauge
-     running high is context — but turning that into "expect X here by Y" is a
+     running high is context - but turning that into "expect X here by Y" is a
      forecast, which this project does not make and is not equipped to make:
      the backtest found lead times so sensitive that one rise at the 99.501st
      percentile rather than the 99.492nd moved Garthdee's warning from 10.8
@@ -953,7 +953,7 @@
         var hot = flagsOf(s).length;
         return '<li><span class="u-name">' + s.name + '</span>' +
           '<span class="u-pct' + (hot ? ' hot' : '') + '">' +
-            (p === null ? '—' : pctText(p)) + '</span>' +
+            (p === null ? '-' : pctText(p)) + '</span>' +
           '<span class="u-km">' +
             (s.km_to_aberdeen - station.km_to_aberdeen).toFixed(1) + ' km up</span></li>';
       }).join('') + '</ul>';
@@ -965,8 +965,8 @@
     }
 
     html += '<p class="note">Water takes time to travel: on the largest event in ' +
-      'the record a wave took <strong>13 h 45 m</strong> to cross the Dee’s 82 km. ' +
-      'That is measured history, not a prediction — this page does not forecast. ' +
+      'the record a wave took <strong>13 h 45 m</strong> to cross the Dee\'s 82 km. ' +
+      'That is measured history, not a prediction - this page does not forecast. ' +
       'For warnings see <a href="https://www.sepa.org.uk/environment/water/flooding/" ' +
       'rel="noopener">SEPA</a> and the <a href="https://www.metoffice.gov.uk/weather/' +
       'warnings-and-advice/uk-warnings" rel="noopener">Met Office</a>.</p>';
@@ -1119,9 +1119,9 @@
       var at = order.indexOf(station.slug);
       $('gaugePos').textContent = at < 0 ? '' : (at + 1) + ' of ' + order.length;
       markGaugeBar();
-      $('detailSub').textContent = station.river + ' · unusually high above ' +
-        detail.thresholds.high_level_m + ' m · fast rise above ' +
-        detail.thresholds.rise_1h_m_per_hr + ' m/hr · both this gauge’s own percentiles';
+      $('detailSub').textContent = station.river + ' | unusually high above ' +
+        detail.thresholds.high_level_m + ' m | fast rise above ' +
+        detail.thresholds.rise_1h_m_per_hr + ' m/hr | both this gauge\'s own percentiles';
     }
 
     if (details[slug]) { show(details[slug]); return; }
@@ -1131,10 +1131,10 @@
       .then(show)
       .catch(function (e) {
         // Rethrow to the console as well as the page. A silent catch here hid
-        // two chart bugs already — an invalid axis option and a use-before-
-        // assignment — both of which rendered a blank chart with a clean log.
+        // two chart bugs already - an invalid axis option and a use-before-
+        // assignment - both of which rendered a blank chart with a clean log.
         console.error('detail render failed', e);
-        $('detailSub').textContent = 'Could not load ' + slug + '.json — ' + e.message;
+        $('detailSub').textContent = 'Could not load ' + slug + '.json - ' + e.message;
       });
   }
 

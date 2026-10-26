@@ -13,7 +13,7 @@ on:
     # Every 30 minutes, offset off the hour. GitHub's docs warn the schedule
     # event "can be delayed during periods of high loads", that "high load
     # times include the start of every hour", and that "some queued jobs may
-    # be dropped" — so treat this as best-effort, not a guarantee. The site
+    # be dropped" - so treat this as best-effort, not a guarantee. The site
     # shows a stale banner after 6 hours precisely because of that.
     #
     # Half-hourly, not quarter-hourly, deliberately: SEPA document a 5,000
@@ -68,7 +68,7 @@ jobs:
       #
       # ALL THREE PATHS MATTER. Caching only data/raw would leave rainfall and
       # flow empty on a cold cache, and export.py would then quietly publish a
-      # level-only site over the good one — worse than failing.
+      # level-only site over the good one - worse than failing.
       #
       # The run_id key always saves a fresh entry; restore-keys finds the newest.
       - name: Restore SEPA parquet cache
@@ -128,7 +128,7 @@ jobs:
       # Long-record flow: daily means back to 1929, and every flood peak since
       # 1971. These are sparse series that SEPA bills at the 1-credit minimum,
       # so refreshing them each run costs about 30 credits in total.
-      # Long-record flow changes slowly — daily is plenty, and it saves ~255
+      # Long-record flow changes slowly - daily is plenty, and it saves ~255
       # credits on every quarter-hourly run.
       - name: Fetch long-record flow
         if: steps.depth.outputs.deep == 'true'
@@ -155,7 +155,7 @@ jobs:
       # not just the deep one: a 12-hour projection issued once a day is stale
       # for most of the day, which would be worse than not drawing it. Fitting
       # takes about 35 s, and this is a public repo, so Actions minutes are not
-      # the constraint. Routes water already measured upstream — it uses no
+      # the constraint. Routes water already measured upstream - it uses no
       # weather forecast and is not a warning.
       - name: Project the next 12 hours
         run: python pipeline/forecast.py
@@ -166,7 +166,7 @@ jobs:
         with:
           # The whole static site. Pages' "deploy from a branch" mode cannot
           # publish an arbitrary folder, which is why this uses the Actions
-          # source instead — see the README.
+          # source instead - see the README.
           path: site
 
   deploy:

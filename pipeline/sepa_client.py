@@ -177,7 +177,7 @@ class SepaClient:
         dateformat: str = "yyyy-MM-dd",
         **extra: Any,
     ) -> list[dict[str, str]]:
-        """getTimeseriesList — "Retrieves a list of time series with metadata."
+        """getTimeseriesList - "Retrieves a list of time series with metadata."
 
         Returns one dict per series, keyed by the field names in the response's
         own header row (note that asking for `coverage` yields `from` and `to`).
@@ -218,7 +218,7 @@ class SepaClient:
         md_returnfields: list[str] | None = None,
         **extra: Any,
     ) -> TimeseriesValues:
-        """getTimeseriesValues — "Retrieves time series data values."
+        """getTimeseriesValues - "Retrieves time series data values."
 
         Dates are `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`; `period` is ISO-8601-ish
         (`P5Y`, `P7D`, `PT6H`). Timestamps come back in UTC with a `Z` suffix.

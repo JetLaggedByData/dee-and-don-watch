@@ -1,21 +1,21 @@
 """Detectors for unusual river-level behaviour and likely sensor faults.
 
 Every function here is pure: a pandas Series in, a Series or list out. No
-network, no files, no config loading — so all of it is directly testable.
+network, no files, no config loading - so all of it is directly testable.
 
 Three families:
 
-  1. data quality   — gaps, flatlines (stuck sensor), Hampel/MAD spikes
-  2. rate of rise   — m/hr over 1h and 3h, as a percentile of the station's own
+  1. data quality   - gaps, flatlines (stuck sensor), Hampel/MAD spikes
+  2. rate of rise   - m/hr over 1h and 3h, as a percentile of the station's own
                       history of rises
-  3. level          — percentile against the station's own history
+  3. level          - percentile against the station's own history
 
 Why percentiles and not a robust z-score
 ----------------------------------------
 The first version scored rate of rise as a median/MAD z-score. On real SEPA
 data that fired on 6-11% of all samples. The cause is sensor quantisation:
 these gauges resolve to 1 mm, and the rivers register no change at all in
-13-50% of samples, so the MAD of the hourly rate of rise is 0.001-0.004 m/hr —
+13-50% of samples, so the MAD of the hourly rate of rise is 0.001-0.004 m/hr -
 one to four sensor ticks. A 3-sigma threshold therefore meant "rose by 3 mm in
 an hour". The z-score was measuring the sensor's rounding, not the river.
 
@@ -135,7 +135,7 @@ def find_gaps(s: pd.Series, cfg: DetectConfig) -> list[dict[str, Any]]:
 
 
 def find_flatlines(s: pd.Series, cfg: DetectConfig) -> list[dict[str, Any]]:
-    """Stretches where the reading does not move — the stuck-sensor signature.
+    """Stretches where the reading does not move - the stuck-sensor signature.
 
     At the default tolerance of zero this means not one millimetre of movement
     for 12 hours. Shorter and looser thresholds do not survive contact with
@@ -190,7 +190,7 @@ def rate_of_rise(s: pd.Series, hours: float, cfg: DetectConfig) -> pd.Series:
 
     NaN wherever the window is not fully populated. Without that, the first
     reading after a six-hour outage would report the whole outage's change as
-    one hour of rise — a fabricated emergency.
+    one hour of rise - a fabricated emergency.
     """
     lag = int(round(hours * 60 / cfg.freq_minutes))
     if lag < 1:

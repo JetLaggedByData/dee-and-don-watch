@@ -61,7 +61,7 @@ def to_frame(values: TimeseriesValues) -> pd.DataFrame:
             "quality": pd.to_numeric(column("Quality Code", 2), errors="coerce").astype("Int16"),
         }
     )
-    # Timestamps arrive as e.g. "2026-10-24T08:00:00.000Z" — already UTC.
+    # Timestamps arrive as e.g. "2026-10-24T08:00:00.000Z" - already UTC.
     out.index = pd.DatetimeIndex(
         pd.to_datetime(column("Timestamp", 0), utc=True, format="ISO8601"),
         name="timestamp",
@@ -122,7 +122,7 @@ def missing_windows(
 
     * **Older than we hold.** Asking for a longer history must fetch only the
       part before the cache starts. Re-requesting years we already have would
-      cost full price every time the window is widened — about 2,400 wasted
+      cost full price every time the window is widened - about 2,400 wasted
       credits on the first extension alone.
     * **Newer than we hold**, plus `overlap_hours` of data we do hold, because
       SEPA revises on a monthly cycle.
@@ -162,7 +162,7 @@ def update_station(
 ) -> dict[str, Any]:
     """Top up one station's cache. Returns a summary row for the report.
 
-    `spec` describes the dataset being fetched — level or rainfall — so the
+    `spec` describes the dataset being fetched - level or rainfall - so the
     same code serves both: they differ only in sample interval, cache
     directory and how far back to go.
     """

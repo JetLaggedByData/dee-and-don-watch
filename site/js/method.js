@@ -1,4 +1,4 @@
-/* Dee & Don Watch — the method page: flood wave, backtest, limitations.
+/* Dee & Don Watch - the method page: flood wave, backtest, limitations.
    No Chart.js here; the cascade is plain HTML, which is lighter and more
    accessible than a canvas for nine labelled points. */
 
@@ -29,7 +29,7 @@
       var pct = Math.min(Math.max((100 * g.hours_from_first) / span, 1.5), 98.5);
       return '<div class="cascade-row">' +
           '<span class="cascade-label">' + g.name +
-            '<small>' + g.km_to_aberdeen + ' km · ' + g.peak_m.toFixed(2) + ' m</small></span>' +
+            '<small>' + g.km_to_aberdeen + ' km | ' + g.peak_m.toFixed(2) + ' m</small></span>' +
           '<span class="cascade-track">' +
             '<span class="cascade-marker" style="left:' + pct + '%">' +
               '<span class="cascade-dot"></span>' +
@@ -41,8 +41,8 @@
     return '<div class="river">' +
         '<div class="river-head">' +
           '<span class="river-name">' + river.river + '</span>' +
-          '<span class="river-stat">' + river.total_hours.toFixed(2) + ' h · ' +
-            river.span_km + ' km · ' + river.apparent_kmh + ' km/h apparent · ' +
+          '<span class="river-stat">' + river.total_hours.toFixed(2) + ' h | ' +
+            river.span_km + ' km | ' + river.apparent_kmh + ' km/h apparent | ' +
             (river.monotonic ? 'strictly in order' : 'NOT in order') + '</span>' +
         '</div>' +
         '<div class="cascade">' + rows + '</div>' +
@@ -55,12 +55,12 @@
     $('waveSub').textContent =
       'The largest event in the record (' + fmtDateTime(wave.event_utc) + '), chosen from ' +
       'the data rather than assumed. Only gauges on the Dee and Don themselves form a ' +
-      'sequence — tributary gauges sit on different watercourses and are listed below.';
+      'sequence - tributary gauges sit on different watercourses and are listed below.';
 
     $('waveRivers').innerHTML = wave.rivers.map(riverHTML).join('');
 
     $('waveTributaries').innerHTML = wave.tributaries.map(function (t) {
-      return '<div class="chip">' + t.name + ' · ' + t.river +
+      return '<div class="chip">' + t.name + ' | ' + t.river +
         '<b>' + t.hours_before_outlet.toFixed(1) + 'h earlier</b></div>';
     }).join('');
 
@@ -69,14 +69,14 @@
 
     document.querySelector('#waveTable tbody').innerHTML = reaches.map(function (r) {
       return '<tr>' +
-        '<td>' + r.from + ' → ' + r.to + '</td>' +
+        '<td>' + r.from + ' to ' + r.to + '</td>' +
         '<td>' + r.km_apart + ' km</td>' +
         '<td>' + r.peak_to_peak_hours.toFixed(2) + ' h</td>' +
-        '<td>' + (r.xcorr_hours === null ? '—' : r.xcorr_hours.toFixed(2) + ' h') +
+        '<td>' + (r.xcorr_hours === null ? '-' : r.xcorr_hours.toFixed(2) + ' h') +
           '<span class="base">r = ' +
-          (r.xcorr_correlation === null ? '—' : r.xcorr_correlation.toFixed(3)) + '</span></td>' +
+          (r.xcorr_correlation === null ? '-' : r.xcorr_correlation.toFixed(3)) + '</span></td>' +
         '<td' + (r.agrees ? '' : ' class="flagcell"') + '>' +
-          (r.difference_hours === null ? '—' : r.difference_hours.toFixed(2) + ' h') +
+          (r.difference_hours === null ? '-' : r.difference_hours.toFixed(2) + ' h') +
           '<span class="base">' + (r.agrees ? 'consistent' : 'differ') + '</span></td>' +
       '</tr>';
     }).join('');
@@ -95,8 +95,8 @@
       return '<span class="miss">MISS</span><span class="base">on ' +
         flag.base_rate_pct.toFixed(2) + '% of record</span>';
     }
-    return (flag.censored ? '≥' : '') + flag.lead_hours.toFixed(1) + 'h' +
-      '<span class="base">on ' + flag.base_rate_pct.toFixed(2) + '% of record · ' +
+    return (flag.censored ? '>=' : '') + flag.lead_hours.toFixed(1) + 'h' +
+      '<span class="base">on ' + flag.base_rate_pct.toFixed(2) + '% of record | ' +
       flag.episodes_unexplained + '/' + flag.episodes_total + ' away from a top peak</span>';
   }
 
@@ -105,7 +105,7 @@
       'The largest high-water event in the ' + years + '-year record: ' +
       fmtDateTime(backtest.event_utc) + ', when all ' + backtest.stations_involved.length +
       ' gauges peaked within ' + backtest.lookback_hours + ' hours of each other. Every lead ' +
-      'time is shown beside how much of the record that flag is set for — alone, a lead time ' +
+      'time is shown beside how much of the record that flag is set for - alone, a lead time ' +
       'means nothing.';
 
     document.querySelector('#backtestTable tbody').innerHTML =
@@ -125,11 +125,11 @@
       }).join('');
 
     $('backtestNotes').innerHTML =
-      '<strong>≥</strong> means the flag was already set ' + backtest.lookback_hours +
-      ' hours before the peak, so the true lead is longer than this can measure — not that ' +
+      '<strong>>=</strong> means the flag was already set ' + backtest.lookback_hours +
+      ' hours before the peak, so the true lead is longer than this can measure - not that ' +
       'it is exactly that figure. <strong>MISS</strong> means it never fired in that window. ' +
       '"Away from a top peak" counts flag episodes more than ' + backtest.false_alarm_hours +
-      ' hours from any of that gauge’s top ' + backtest.top_peaks + ' peaks; most are ordinary ' +
+      ' hours from any of that gauge\'s top ' + backtest.top_peaks + ' peaks; most are ordinary ' +
       'rain responses rather than errors, but they are why a single flag is not a warning.';
   }
 
@@ -158,9 +158,9 @@
 
     $('routingSub').textContent =
       'Predicting a downstream gauge from the gauges above it, using water already in the ' +
-      'channel. Gradient boosting on upstream level, rate of change shifted by each gauge’s ' +
-      'measured travel time, and catchment rainfall. Scored against persistence — "the level ' +
-      'stays where it is" — on a held-out test set split by time, never shuffled. ' +
+      'channel. Gradient boosting on upstream level, rate of change shifted by each gauge\'s ' +
+      'measured travel time, and catchment rainfall. Scored against persistence - "the level ' +
+      'stays where it is" - on a held-out test set split by time, never shuffled. ' +
       'Travel times: ' + travel + '.';
 
     // Two series only: the flood case for each river. The all-levels numbers
@@ -168,7 +168,7 @@
     var colours = [SERIES, ALERT];
     var datasets = reaches.map(function (r, i) {
       return {
-        label: r.outlet + ' — gradient boosting',
+        label: r.outlet + ' - gradient boosting',
         data: r.horizons.map(function (h) {
           return { x: h.hours, y: 100 * h.skill_extreme };
         }),
@@ -185,7 +185,7 @@
     var allHours = reaches[0].horizons.map(function (h) { return h.hours; });
     reaches.forEach(function (r, i) {
       datasets.push({
-        label: r.outlet + ' — linear baseline',
+        label: r.outlet + ' - linear baseline',
         data: r.horizons.map(function (h) {
           return { x: h.hours, y: 100 * h.linear_skill_extreme };
         }),
@@ -272,10 +272,10 @@
     });
 
     $('routingNote').innerHTML =
-      'Skill is <span class="mono">1 − (model error ÷ persistence error)</span>. Zero means no ' +
+      'Skill is <span class="mono">1 - (model error / persistence error)</span>. Zero means no ' +
       'better than assuming the level stays put; <strong class="neg">below zero means worse ' +
       'than doing nothing</strong>' +
-      (worst.length ? ' — which happens at ' + worst.join(' and ') + '.' : '.') +
+      (worst.length ? ' - which happens at ' + worst.join(' and ') + '.' : '.') +
       ' That is why this is capped at the catchment\u2019s travel time rather than extended ' +
       'to days: past it, the water has not entered the river yet.';
 
@@ -291,7 +291,7 @@
             '<span class="base">linear ' + (100 * h.linear_skill).toFixed(1) + '%</span></td>' +
           '<td' + cls + '>' + (100 * h.skill_extreme).toFixed(1) + '%' +
             '<span class="base">linear ' + (100 * h.linear_skill_extreme).toFixed(1) +
-            '% · above ' + h.extreme_threshold_m + ' m</span></td>' +
+            '% | above ' + h.extreme_threshold_m + ' m</span></td>' +
         '</tr>';
       }).join('');
     }).join('');
@@ -324,7 +324,7 @@
       // Log as well as display: a render error inside the chain was previously
       // swallowed here, leaving an empty table and a clean console.
       if (window.console && console.error) console.error('method.js:', err);
-      $('waveSub').textContent = 'Could not load the data files — ' + err.message;
+      $('waveSub').textContent = 'Could not load the data files - ' + err.message;
     });
   // The space-time view lives here rather than on the monitor page: over a
   // fortnight the travel time is 4% of the width, but over this event it is

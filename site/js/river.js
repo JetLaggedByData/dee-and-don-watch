@@ -6,14 +6,14 @@
    one scale on both axes, so the catchment keeps its real shape.
 
    No tile layer. Tiles would mean a third-party request on every page view on
-   a visitor's behalf, which this project does not make — so the geometry is
+   a visitor's behalf, which this project does not make - so the geometry is
    served from our own origin instead. OSM data is ODbL and the footer carries
    the required attribution.
 
    Two things carry data rather than decoration:
      * the channel SWELLS along its length, interpolated between gauges from
        how high each sits in its own record
-     * a gauge running high is larger and ochre — a river in spate carries peat
+     * a gauge running high is larger and ochre - a river in spate carries peat
        and silt and goes brown
 
    The gauge list below is the accessible twin. */
@@ -32,12 +32,12 @@
     return Math.max(360, Math.min(960,
       Math.round(W * host.clientHeight / host.clientWidth)));
   }
-  // Nothing is overlaid on the map now — the legend moved into the panel — so
+  // Nothing is overlaid on the map now - the legend moved into the panel - so
   // the padding is only what the scale bar needs.
   var PAD = { l: 44, r: 44, t: 38, b: 58 };
 
   // Map fills are judged on contrast against the land, not the categorical
-  // band — see the note in style.css.
+  // band - see the note in style.css.
   function token(name, fallback) {
     var v = getComputedStyle(document.documentElement).getPropertyValue(name);
     return (v || '').trim() || fallback;
@@ -256,13 +256,13 @@
       '" text-anchor="end" class="rv-city">ABERDEEN</text></g>';
 
     // Labels last. Seeded with every marker so a name never lands on a dot, and
-    // tested in two dimensions — comparing longitude alone put gauges 20 km
+    // tested in two dimensions - comparing longitude alone put gauges 20 km
     // apart north-to-south in conflict with one another.
     var boxes = stations.map(function (s) {
       return { x: p.x(s.lon), y: p.y(s.lat), hw: 10, hh: 10 };
     });
     // The city label is drawn above, so it has to be in the test too, or a
-    // gauge name lands on it — Parkhill did.
+    // gauge name lands on it - Parkhill did.
     boxes.push({ x: ax - 59, y: ay - 14, hw: 52, hh: 10 });
     function clash(cx, cy, hw, hh) {
       for (var i = 0; i < boxes.length; i++) {
@@ -298,7 +298,7 @@
       (hot.length
         ? hot.length + ' running high: ' + hot.map(function (s) { return s.name; }).join(', ') + '.'
         : 'None flagged.') +
-      ' The channel is drawn wider where the level sits higher in that gauge’s own record. ' +
+      ' The channel is drawn wider where the level sits higher in that gauge\'s own record. ' +
       (geo ? 'River and coast outlines from OpenStreetMap. ' : '') +
       'The same figures are listed below.';
   }

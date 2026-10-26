@@ -8,16 +8,16 @@ reach each successive gauge on the Dee and the Don.
 
 Two independent measurements per reach, deliberately:
 
-  * **peak to peak** — when each gauge recorded its highest value. Simple, but
+  * **peak to peak** - when each gauge recorded its highest value. Simple, but
     it rests on one sample per gauge and a flat crest moves it by hours.
-  * **cross-correlation** — the lag that best aligns the two normalised
+  * **cross-correlation** - the lag that best aligns the two normalised
     hydrographs, using the whole event's shape.
 
 Where the two agree, the travel time is believable. Where they disagree, the
 reach is reported as uncertain rather than averaged into a tidy number.
 
 Only **main-stem** gauges form a sequence. Tributary gauges (Feugh, Gairn,
-Muick, Urie) sit on different watercourses and peak on their own schedule — the
+Muick, Urie) sit on different watercourses and peak on their own schedule - the
 first version of this mixed them in by sorting on straight-line distance to
 Aberdeen, and the ordering collapsed. They are reported separately.
 
@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     for station in config["stations"]:
         path = cache_dir / f"{slugify(station['name'])}.parquet"
         if not path.exists():
-            print(f"No cache for {station['name']} — run fetch.py first", file=sys.stderr)
+            print(f"No cache for {station['name']} - run fetch.py first", file=sys.stderr)
             return 1
         values = to_regular_grid(
             pd.read_parquet(path)["value"], config["detect"]["freq_minutes"]
@@ -202,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     # ---- report ---- #
     print(f"Event: {event:%Y-%m-%d %H:%M} UTC\n")
     for r in rivers:
-        print(f"{r['river']} main stem — upstream to downstream")
+        print(f"{r['river']} main stem - upstream to downstream")
         print(f"  {'km':>6}  {'gauge':<12}{'peak':<18}{'level':>7}{'+hrs':>7}")
         for g in r["gauges"]:
             print(f"  {g['km_to_aberdeen']:>6.1f}  {g['name']:<12}"
@@ -211,9 +211,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {'peak-peak':>10}{'xcorr':>9}{'diff':>7}{'corr':>7}  reach")
         for reach_row in r["reaches"]:
             mark = "consistent" if reach_row["agrees"] else "DIFFER"
-            xc = "—" if reach_row["xcorr_hours"] is None else f"{reach_row['xcorr_hours']:.2f}h"
-            df = "—" if reach_row["difference_hours"] is None else f"{reach_row['difference_hours']:.2f}"
-            cc = "—" if reach_row["xcorr_correlation"] is None else f"{reach_row['xcorr_correlation']:.3f}"
+            xc = "-" if reach_row["xcorr_hours"] is None else f"{reach_row['xcorr_hours']:.2f}h"
+            df = "-" if reach_row["difference_hours"] is None else f"{reach_row['difference_hours']:.2f}"
+            cc = "-" if reach_row["xcorr_correlation"] is None else f"{reach_row['xcorr_correlation']:.3f}"
             print(f"  {reach_row['peak_to_peak_hours']:>9.2f}h{xc:>9}{df:>7}{cc:>7}  "
                   f"{reach_row['from']} -> {reach_row['to']} ({mark})")
         state = "monotonic" if r["monotonic"] else "NOT monotonic"
@@ -221,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
               f"({r['apparent_kmh']} km/h apparent)\n")
 
     if tributaries:
-        print("Tributaries — not part of either sequence")
+        print("Tributaries - not part of either sequence")
         for t in tributaries:
             print(f"  {t['name']:<12}{t['river']:<8}"
                   f"{pd.Timestamp(t['peak_utc']):%Y-%m-%d %H:%M}{t['peak_m']:>7.2f}"

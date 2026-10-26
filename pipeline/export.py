@@ -160,7 +160,7 @@ def daily_catchment_rain(config: dict[str, Any], catchment: str) -> pd.Series:
 
     The 14-day chart shows hourly rain; the longer ranges need something that
     survives being drawn across ten years, and a daily total is the honest
-    aggregate — rain is a sum over a period, unlike level, which is a reading
+    aggregate - rain is a sum over a period, unlike level, which is a reading
     at an instant.
     """
     rain_cfg = config.get("rain")
@@ -193,7 +193,7 @@ def catchment_rain(
     rain traces would be noise, and the question the page asks is "did rain fall
     on this catchment", not "what did each gauge record".
 
-    Rain is context, never a flag. It is not run through the level detectors —
+    Rain is context, never a flag. It is not run through the level detectors -
     percentile thresholds over rain totals would mean nothing.
     """
     rain_cfg = config.get("rain")
@@ -307,7 +307,7 @@ def export_station(
     # These are carried as pandas objects, not lists, because every station's
     # window ends at its own last reading and so starts at its own hour. Lists
     # would line up by position and silently shift a station by an hour or two
-    # — in a chart whose whole subject is timing. They are aligned on a common
+    # - in a chart whose whole subject is timing. They are aligned on a common
     # grid in write_spacetime and dropped before the index is written.
     return {
         "_hourly_pct": window["level_pct"].resample("1h").mean(),
@@ -379,7 +379,7 @@ def write_spacetime_event(summaries: list[dict[str, Any]], out_dir: Path) -> Non
 
     Each gauge is scaled to its OWN range within this window, not to its
     ten-year percentile. Percentile has a ceiling, and in the largest event of
-    the record every gauge pegs at the 100th for days — leaving no headroom to
+    the record every gauge pegs at the 100th for days - leaving no headroom to
     show the one thing the chart is for. Normalising within the event is also
     what the cross-correlation above already does, so the two agree on method.
     """
@@ -436,7 +436,7 @@ def write_spacetime(summaries: list[dict[str, Any]], grid: pd.DatetimeIndex,
     percentile, ordered upstream to downstream, on a shared time grid.
 
     Main stem only, and this is the whole point. The flood-wave work found that
-    the gauges only form a sequence along a single watercourse — mixing the
+    the gauges only form a sequence along a single watercourse - mixing the
     tributaries in put 8 of 13 out of order, because straight-line distance to
     Aberdeen is not position along a river. A tributary gauge has no meaningful
     place on this axis, so it is not given one.
@@ -499,7 +499,7 @@ def main() -> int:
         slug = slugify(station["name"])
         if not (cache_dir / f"{slug}.parquet").exists():
             print(
-                f"No cache for {station['name']} — run fetch.py first", file=sys.stderr
+                f"No cache for {station['name']} - run fetch.py first", file=sys.stderr
             )
             return 1
         summaries.append(export_station(station, config, cfg, now, cache_dir, out_dir))

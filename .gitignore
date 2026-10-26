@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Raw SEPA caches — rebuilt by fetch.py / fetch_flow.py, restored in CI from
+# Raw SEPA caches - rebuilt by fetch.py / fetch_flow.py, restored in CI from
 # actions/cache, never committed. Together they are ~57 MB of parquet.
 data/raw/
 data/raw_rain/

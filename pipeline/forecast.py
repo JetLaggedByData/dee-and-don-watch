@@ -21,8 +21,8 @@ Only Garthdee and Parkhill have gauges above them to route from; the other
 eleven are headwaters or sit on tributaries with a single gauge. And skill
 collapses around each catchment's travel time (13.75 h on the Dee, 15.75 h on
 the Don) because beyond that the water has not entered the river yet. Past 24 h
-the model measured WORSE than assuming nothing changes — Parkhill scores -0.23
-at 36 h — so the projection stops at 12 h rather than fading out.
+the model measured WORSE than assuming nothing changes - Parkhill scores -0.23
+at 36 h - so the projection stops at 12 h rather than fading out.
 
 The band is the model's own test error at that horizon, read from routing.json,
 so what is drawn as uncertainty is measured rather than assumed.
@@ -133,7 +133,7 @@ def main() -> int:
     routing = json.loads(routing_path.read_text(encoding="utf-8")) \
         if routing_path.exists() else {}
     if not routing:
-        print("No routing.json — the band will be omitted", file=sys.stderr)
+        print("No routing.json - the band will be omitted", file=sys.stderr)
 
     sample = next(iter(levels.values()))
     freq_minutes = int(
@@ -158,7 +158,7 @@ def main() -> int:
         "band": "the model's own RMSE on held-out data at that horizon",
         "not_a_forecast": (
             "Routing of water already measured upstream. No weather forecast is "
-            "used. This is not a flood warning service — for warnings see SEPA "
+            "used. This is not a flood warning service - for warnings see SEPA "
             "and the Met Office."
         ),
         "reaches": out,
@@ -166,7 +166,7 @@ def main() -> int:
 
     path = REPO_ROOT / "site" / "data" / "forecast.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
-    print(f"\nWrote {path.relative_to(REPO_ROOT)} — {len(out)} reach(es)")
+    print(f"\nWrote {path.relative_to(REPO_ROOT)} - {len(out)} reach(es)")
     return 0
 
 

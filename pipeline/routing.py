@@ -7,7 +7,7 @@ What this is, and is not
 ------------------------
 This is **routing**, not forecasting. It predicts where water that is *already
 in the river* will be in a few hours' time. The information it uses physically
-exists at the moment of prediction, sitting at an upstream gauge — which is why
+exists at the moment of prediction, sitting at an upstream gauge - which is why
 it works at all, and why it stops working at a predictable point.
 
 That point is the catchment's own travel time, which `wave.py` measured
@@ -26,21 +26,21 @@ taste. On held-out data at a 6-hour horizon, flood skill was:
     linear (OLS)       71.4%     neural net      70.2%
 
 The neural net is the instructive one. It **won on validation at 79.1% and
-dropped to 70.2% on test** — worse than linear regression. Selecting on
+dropped to 70.2% on test** - worse than linear regression. Selecting on
 validation and reporting validation would have produced a headline claim of
 "79% with a neural network" that the data does not support. Gradient boosting
 was stable across both, and fits in two seconds rather than seventy.
 
 Two pieces of domain knowledge do more work than the model class:
 
-  * **predict the change, not the level** — persistence is already strong, so
+  * **predict the change, not the level** - persistence is already strong, so
     the model only has to learn the residual
   * **shift each upstream gauge by its measured travel time** so the model is
     handed the water that will actually arrive, rather than inferring the lag
 
 Honest evaluation
 -----------------
-* Split **by time**, three ways — train / validation / test. Never shuffled.
+* Split **by time**, three ways - train / validation / test. Never shuffled.
 * Every choice is made on validation; the test set is scored once, at the end.
 * Everything is compared against **persistence**, because a river is strongly
   autocorrelated and a naive forecast already looks good on raw error.
@@ -120,7 +120,7 @@ def build_features(
 
     The target is the CHANGE over the horizon, not the level. Persistence
     already explains most of the level, so the model only has to learn what
-    persistence gets wrong — which is where all the useful signal lives.
+    persistence gets wrong - which is where all the useful signal lives.
     """
     per_hour = 60 // freq_minutes
     f = pd.DataFrame(index=target.index)
@@ -141,7 +141,7 @@ def build_features(
         #
         # Without the clamp, shift() takes a negative argument and silently
         # hands the model future data. The giveaway was flood skill RISING with
-        # horizon — +90.8% at 48 h against +77.9% at 6 h — which routing
+        # horizon - +90.8% at 48 h against +77.9% at 6 h - which routing
         # physics forbids.
         offset = max(0, int(round(lags_h[name] * per_hour)) - horizon_steps)
         f[f"{name}_arrival"] = series.shift(offset)
@@ -156,7 +156,7 @@ def build_features(
     f["y_abs"] = target.shift(-horizon_steps)
     # Rows are returned unfiltered. Evaluation drops every incomplete row, but
     # the live projection in forecast.py needs the most recent row precisely
-    # because its target is still unknown — dropping it here would throw away
+    # because its target is still unknown - dropping it here would throw away
     # the only row worth predicting from.
     return f
 

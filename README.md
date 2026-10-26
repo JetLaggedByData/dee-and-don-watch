@@ -38,15 +38,15 @@ Each gauge is compared only with **its own** record:
 4. **12-hour projection** at Garthdee and Parkhill only. It routes water already measured
    upstream and uses no weather forecast. It is withheld if an upstream gauge stops reporting.
 
-A textbook robust z-score was tried first and flagged 7–11% of all readings, because the gauges
+A textbook robust z-score was tried first and flagged 7-11% of all readings, because the gauges
 round to 1 mm. Percentiles fixed it (~0.5%).
 
 ## Results
 
-Backtested on the largest flood in the 10-year record, **18–19 Nov 2022**:
+Backtested on the largest flood in the 10-year record, **18-19 Nov 2022**:
 
 - Both rivers peaked strictly in downstream order: **13.75 h** down the Dee, **15.75 h** down the Don.
-- The high-level flag fired at every main-stem gauge, 3.5–33.5 h before the peak.
+- The high-level flag fired at every main-stem gauge, 3.5-33.5 h before the peak.
 - **Misses:** the strict rise flag missed Garthdee, Park and Polhollick.
 - During floods, the projection beats "no change" out to ~16 h at Garthdee and ~24 h at
   Parkhill, then does worse than it. The site shows only 12 h.
@@ -73,8 +73,8 @@ python -m http.server -d site 8000
 
 ## Credits
 
-Data: SEPA, Open Government Licence ·
+Data: SEPA, Open Government Licence |
 Imagery: *Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified
-Copernicus Sentinel data 2016 & 2017)*, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ·
-Rivers: © OpenStreetMap contributors, [ODbL](https://opendatacommons.org/licenses/odbl/) ·
-[Chart.js](https://www.chartjs.org/) · Fonts: Syne, Inter, JetBrains Mono (SIL OFL, see `site/fonts/`)
+Copernicus Sentinel data 2016 & 2017)*, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+Rivers: © OpenStreetMap contributors, [ODbL](https://opendatacommons.org/licenses/odbl/) |
+[Chart.js](https://www.chartjs.org/) | Fonts: Syne, Inter, JetBrains Mono (SIL OFL, see `site/fonts/`)

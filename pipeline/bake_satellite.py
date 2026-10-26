@@ -8,7 +8,7 @@ and served from this origin.
 Why bake rather than use a tile layer
 -------------------------------------
 A satellite basemap normally means a tile server, and that means a third-party
-request on every page view on a visitor's behalf — which this project does not
+request on every page view on a visitor's behalf - which this project does not
 make. But the map never pans or zooms: it always shows the same ground. So the
 whole thing is exactly one image, fetched once here and served from our own
 origin afterwards. No runtime dependency, nothing for anyone else to log.
@@ -42,7 +42,7 @@ from PIL import Image
 
 from common import REPO_ROOT
 
-# 2016 mosaic only — see the module docstring on licensing.
+# 2016 mosaic only - see the module docstring on licensing.
 LAYER = "s2cloudless_3857"
 URL = "https://tiles.maps.eox.at/wmts/1.0.0/{layer}/default/g/{z}/{y}/{x}.jpg"
 ATTRIBUTION = ("Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH "
@@ -141,7 +141,7 @@ def main() -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     out.save(path, "JPEG", quality=82, optimize=True, progressive=True)
 
-    print(f"\nWrote {path.relative_to(REPO_ROOT)} — {out.width}x{out.height}, "
+    print(f"\nWrote {path.relative_to(REPO_ROOT)} - {out.width}x{out.height}, "
           f"{path.stat().st_size / 1024:.0f} KB")
     print(f"Attribution required on the page and in the README:\n  {ATTRIBUTION}")
     return 0
