@@ -37,15 +37,11 @@ from typing import Any
 
 import pandas as pd
 
-from common import REPO_ROOT, load_config, slugify
+from common import REPO_ROOT, iso, load_config, slugify, write_json
 from routing import REACHES, build_features, catchment_rain, load_levels, make_model
 
 # Capped at twelve hours on purpose. See the module docstring.
 PROJECT_HORIZONS_H = (1, 2, 3, 4, 6, 8, 12)
-
-
-def iso(ts: pd.Timestamp) -> str:
-    return pd.Timestamp(ts).tz_convert("UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def measured_error(routing: dict[str, Any], outlet: str, hours: int) -> float | None:
@@ -158,8 +154,7 @@ def main() -> int:
         "reaches": out,
     }
 
-    path = REPO_ROOT / "site" / "data" / "forecast.json"
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    path = write_json("site/data/forecast.json", payload)
     print(f"\nWrote {path.relative_to(REPO_ROOT)} - {len(out)} reach(es)")
     return 0
 

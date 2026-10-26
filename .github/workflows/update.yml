@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       full_backfill:
-        description: 'Ignore the cache and re-fetch the full history (~6,000 SEPA credits)'
+        description: 'Re-request the full ten-year history (~6,000 SEPA credits)'
         type: boolean
         default: false
 

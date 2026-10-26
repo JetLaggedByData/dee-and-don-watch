@@ -31,10 +31,7 @@ Government Licence.
 from __future__ import annotations
 
 import argparse
-import json
-import sys
 from datetime import timedelta
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -46,8 +43,8 @@ from common import (
     REPO_ROOT,
     haversine_km,
     load_config,
-    raw_dir,
-    slugify,
+    load_station_frames,
+    write_json,
 )
 from detect import DetectConfig, cross_correlation_lag, to_regular_grid
 
@@ -130,19 +127,13 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config()
     cfg = DetectConfig.from_config(config)
-    cache_dir = raw_dir(config)
+    frames = load_station_frames(config)
 
     loaded: dict[str, Any] = {}
     peaks_by_station: dict[str, list[pd.Timestamp]] = {}
 
     for station in config["stations"]:
-        path = cache_dir / f"{slugify(station['name'])}.parquet"
-        if not path.exists():
-            print(f"No cache for {station['name']} - run fetch.py first", file=sys.stderr)
-            return 1
-        values = to_regular_grid(
-            pd.read_parquet(path)["value"], config["detect"]["freq_minutes"]
-        )
+        values = to_regular_grid(frames[station["name"]]["value"], cfg.freq_minutes)
         loaded[station["name"]] = {
             "station": station,
             "values": values,
@@ -238,23 +229,13 @@ def main(argv: list[str] | None = None) -> int:
           "speeds are apparent and the real path is longer.")
 
     if args.json:
-        out = Path(args.json)
-        if not out.is_absolute():
-            out = REPO_ROOT / out
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(
-            json.dumps(
-                {
-                    "event_utc": event.isoformat(),
-                    "event_window_hours": EVENT_WINDOW_HOURS,
-                    "agreement_hours": AGREEMENT_HOURS,
-                    "rivers": rivers,
-                    "tributaries": tributaries,
-                },
-                indent=1,
-            ),
-            encoding="utf-8",
-        )
+        out = write_json(args.json, {
+            "event_utc": event.isoformat(),
+            "event_window_hours": EVENT_WINDOW_HOURS,
+            "agreement_hours": AGREEMENT_HOURS,
+            "rivers": rivers,
+            "tributaries": tributaries,
+        }, indent=1)
         print(f"\nWrote {out.relative_to(REPO_ROOT)}")
 
     return 0

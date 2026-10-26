@@ -38,18 +38,12 @@
 
   // Map fills are judged on contrast against the land, not the categorical
   // band - see the note in style.css.
-  function token(name, fallback) {
-    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
-    return (v || '').trim() || fallback;
-  }
-
-  // Read from :root rather than kept here, so the map and the page can never
-  // disagree about what colour a river is.
+  var token = global.DDW.token, esc = global.DDW.esc;
   var C = {
-    water: token('--map-water', '#2f7fb0'),
-    spate: token('--map-spate', '#b5651d'),
-    ground: token('--bg', '#f2efe9'),
-    line: token('--line', '#ddd8d0')
+    water: token('--map-water'),
+    spate: token('--map-spate'),
+    ground: token('--bg'),
+    line: token('--line')
   };
 
   var KM_LAT = 111.2;
@@ -57,9 +51,6 @@
 
   var ABERDEEN = { lat: 57.1497, lon: -2.0943 };
 
-  function esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
   function flagged(s) {
     var l = s.latest;
     return !!(l.is_fast_rise || l.is_high_level || l.is_suspect || l.is_gap ||

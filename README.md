@@ -64,9 +64,17 @@ Full tables are on the [method page](https://jetlaggedbydata.github.io/dee-and-d
 
 ```bash
 pip install -r requirements.txt
-python pipeline/fetch.py        # top up the SEPA cache
-python pipeline/export.py       # write site/data/*.json
 pytest -q
+
+# Start from the cached snapshot rather than a ~6,000-credit download
+gh release download data-seed -p sepa-seed.tar.gz && tar -xzf sepa-seed.tar.gz
+python pipeline/fetch.py        # top up to now (~30 credits)
+
+python pipeline/export.py       # site/data: gauges, history, event view
+python pipeline/backtest.py --json site/data/backtest.json
+python pipeline/wave.py --json site/data/wave.json
+python pipeline/routing.py --json site/data/routing.json   # ~90 s
+python pipeline/forecast.py     # the 12-hour projection
 python -m http.server -d site 8000
 ```
 
@@ -76,4 +84,4 @@ Data: SEPA, Open Government Licence |
 Imagery: *Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified
 Copernicus Sentinel data 2016 & 2017)*, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 Rivers: © OpenStreetMap contributors, [ODbL](https://opendatacommons.org/licenses/odbl/) |
-[Chart.js](https://www.chartjs.org/) | Fonts: Syne, Inter, JetBrains Mono (SIL OFL, see `site/fonts/`)
+[Chart.js](https://www.chartjs.org/) | Fonts: Inter, JetBrains Mono (SIL OFL, see `site/fonts/`)

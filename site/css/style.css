@@ -1,20 +1,15 @@
 /* Dee & Don Watch.
 
-   Two colours carry meaning and nothing else does:
-     WATER  #2c9ed3  a river behaving
-     SPATE  #9e6805  a river running high - peat and silt, which is what a
-                     Scottish river in flood actually looks like
-   Everything else is neutral grey on a neutral near-black ground. Navy and
-   cyan were dropped deliberately: that pairing is the default dashboard look.
+   Two colours carry meaning and nothing else does: --series (water, a river
+   behaving) and --alert-mark (spate: a river running high carries peat and
+   silt, which is what a Scottish river in flood actually looks like).
+   Everything else is neutral grey on a near-black ground keyed to the
+   satellite imagery. "Not trusted" is grey on purpose: suppressed data should
+   recede, not compete.
 
-   Both marks were re-stepped into the dark OKLCH lightness band (0.48-0.67)
-   and validated rather than eyeballed - adjacent CVD deltaE 23.7, normal
-   vision 26.0, every mark at least 3:1 on the chart surface, every ink at
-   least 4.5:1 on the ground. "Not trusted" is grey on purpose: suppressed
-   data should recede, not compete. */
+   Every colour lives in :root below. The charts and the map read these
+   tokens at runtime, so nothing in the JavaScript carries its own copy. */
 
-@font-face { font-family: 'Syne'; src: url('../fonts/syne.woff2') format('woff2');
-  font-weight: 400 800; font-display: swap; }
 @font-face { font-family: 'Inter'; src: url('../fonts/inter.woff2') format('woff2');
   font-weight: 100 900; font-display: swap; }
 @font-face { font-family: 'JetBrains Mono'; src: url('../fonts/jetbrains-mono.woff2') format('woff2');
@@ -60,6 +55,21 @@
   --grid: #2a3733;
   --axis: #8b9a92;
 
+  /* Chart fills and the legend swatches that describe them: one value each,
+     so the key always matches the chart. */
+  --rain-bar: rgba(98, 195, 234, 0.42);        /* --map-water, translucent */
+  --band-fill: rgba(63, 159, 204, 0.14);       /* --series, translucent */
+  --ribbon-alert: rgba(200, 144, 66, 0.95);
+  --ribbon-untrusted: rgba(125, 133, 138, 0.75);
+  --ribbon-track: rgba(125, 133, 138, 0.14);
+
+  --accent-hover: #7fe9ff;
+  --alert-wash: rgba(226, 137, 60, 0.12);      /* --map-spate, as a wash */
+  --alert-edge: rgba(226, 137, 60, 0.4);
+  --map-label: #e7e3db;
+  --label-halo: rgba(10, 14, 13, 0.85);
+  --scrim: rgba(10, 14, 13, 0.7);
+
   --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
@@ -83,13 +93,13 @@ h2 { font-size: 1.35rem; margin: 0 0 0.35em; color: var(--text-strong); }
 h3 { font-size: 0.98rem; margin: 0 0 0.4em; color: var(--text-strong); }
 
 a { color: var(--accent); text-underline-offset: 0.18em; }
-a:hover { color: #7fe9ff; }
+a:hover { color: var(--accent-hover); }
 
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 .wrap { width: min(60rem, 100%); margin-inline: auto; padding-inline: var(--gutter); }
 
-.skip { position: absolute; left: -9999px; background: var(--accent); color: #04121a;
+.skip { position: absolute; left: -9999px; background: var(--accent); color: var(--bg);
   padding: 0.6rem 1rem; font-weight: 600; }
 .skip:focus { left: 0; top: 0; z-index: 10; }
 
@@ -118,28 +128,12 @@ a:hover { color: #7fe9ff; }
 .masthead nav { font-size: 0.86rem; }
 
 .banner {
-  background: rgba(226, 137, 60, 0.12);
-  border-bottom: 1px solid rgba(226, 137, 60, 0.35);
+  background: var(--alert-wash);
+  border-bottom: 1px solid var(--alert-edge);
   color: var(--alert); padding: 0.7rem var(--gutter);
   font-size: 0.88rem; text-align: center;
 }
 
-/* ---------- the answer ---------- */
-
-.answer { padding-block: clamp(2.2rem, 6vw, 3.6rem) 0; }
-
-.answer-line {
-  font-family: var(--display); font-weight: 700;
-  font-size: clamp(1.7rem, 4.6vw, 2.75rem);
-  line-height: 1.15; letter-spacing: -0.02em;
-  color: var(--text-strong); margin: 0; max-width: 24ch;
-}
-.answer-line em { font-style: normal; color: var(--alert); }
-.answer-line.calm em { color: var(--series); }
-
-.answer-sub { color: var(--muted); max-width: 58ch; margin: 0.9rem 0 0; font-size: 0.95rem; }
-.updated { color: var(--faint); font-size: 0.82rem; margin-top: 1.2rem; }
-.updated a { color: var(--muted); }
 
 /* ---------- app: map beside a panel ---------- */
 
@@ -190,12 +184,18 @@ a:hover { color: #7fe9ff; }
   background: var(--accent); flex: none;
 }
 
+/* The answer: one line, then the detail under it. */
 .answer-line {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.25rem, 1.9vw, 1.55rem); line-height: 1.2;
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.25rem, 1.9vw, 1.55rem);
+  line-height: 1.2; letter-spacing: -0.02em;
+  color: var(--text-strong); margin: 0 0 0.5rem; max-width: 24ch;
 }
-.answer-sub { margin: 0 0 0.6rem; font-size: 0.82rem; max-width: none; }
+.answer-line em { font-style: normal; color: var(--alert); }
+.answer-line.calm em { color: var(--series); }
+.answer-sub { color: var(--muted); margin: 0 0 0.6rem; font-size: 0.82rem; }
 .updated { margin: 0; font-size: 0.72rem; color: var(--faint); }
+.updated a { color: var(--muted); }
 
 .trend {
   display: flex; align-items: center; gap: 0.55rem;
@@ -231,7 +231,7 @@ a:hover { color: #7fe9ff; }
 }
 .stage-key summary::-webkit-details-marker { display: none; }
 .stage-key summary::before { content: '+'; color: var(--accent); line-height: 1; }
-.stage-key details[open] summary::before { content: '\2212'; }
+.stage-key details[open] summary::before { content: '-'; }
 .stage-key summary:hover { color: var(--text-strong); }
 .stage-key summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .stage-key details p { margin: 0.4rem 0 0; }
@@ -258,7 +258,7 @@ a:hover { color: #7fe9ff; }
 .backlink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #viewDetail h2 { margin: 0 0 0.2rem; font-size: 1.15rem; }
-.detail-sub { margin: 0 0 0.9rem; color: var(--muted); font-size: 0.78rem; }
+.detail-sub { margin: 0.3rem 0 0; color: var(--faint); font-size: 0.8rem; }
 .toggles { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
 .rangetoggle { flex-wrap: wrap; }
 .gaugebar {
@@ -273,7 +273,7 @@ a:hover { color: #7fe9ff; }
 }
 .gaugebar button:hover { color: var(--text-strong); border-color: var(--accent); }
 .gaugebar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.gaugebar button.hot { color: var(--alert); border-color: rgba(226, 137, 60, 0.45); }
+.gaugebar button.hot { color: var(--alert); border-color: var(--alert-edge); }
 .gaugebar button[aria-pressed="true"] {
   background: var(--accent); border-color: var(--accent); color: var(--bg);
 }
@@ -293,8 +293,7 @@ a:hover { color: #7fe9ff; }
 .customrange input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .rangetoggle button { padding: 0.3rem 0.5rem; font-size: 0.72rem; }
 
-/* What is upstream right now. Observational: this is not a forecast, and the
-   panel says so rather than implying otherwise by omission. */
+/* What is upstream right now: observational context. */
 .upstream {
   margin-top: 1.2rem; padding-top: 0.9rem;
   border-top: 1px solid var(--line-soft);
@@ -328,12 +327,6 @@ a:hover { color: #7fe9ff; }
 
 /* ---------- the river ---------- */
 
-.river-svg { width: 100%; height: auto; display: block; }
-
-/* A halo, not more collision logic. The placement test only knows about the
-   markers, so a name can still land on a channel - Haughton and Parkhill did.
-   Painting the stroke under the fill is how maps have always handled this, and
-   it holds wherever the label ends up. */
 /* Imagery is context, not the subject. Held back so the rivers and gauges
    stay the brightest things on the map. */
 .rv-sat { opacity: 0.82; }
@@ -363,25 +356,22 @@ a:hover { color: #7fe9ff; }
 .gauge-mark:hover .rv-name,
 .gauge-mark:focus-visible .rv-name { fill: var(--text-strong); }
 
-.rv-name, .rv-val, .rv-river, .rv-city, .rv-tick {
+/* A halo, not more collision logic. A name can still land on a channel -
+   Haughton and Parkhill did - and painting the stroke under the fill is how
+   maps have always handled that, wherever the label ends up. */
+.rv-name, .rv-val, .rv-city, .rv-tick {
   paint-order: stroke fill;
-  stroke: rgba(10, 14, 13, 0.85); stroke-width: 3.2px; stroke-linejoin: round;
+  stroke: var(--label-halo); stroke-width: 3.2px; stroke-linejoin: round;
 }
 
-.rv-name { font: 500 11px var(--sans); fill: #f2efe9; letter-spacing: 0.02em; }
+.rv-name { font: 500 11px var(--sans); fill: var(--map-label); letter-spacing: 0.02em; }
 .rv-name.hot { fill: var(--alert); }
 .rv-val { font: 400 11px var(--mono); fill: var(--alert); }
-.rv-river { font: 700 14px var(--display); fill: #e7e3db; letter-spacing: 0.06em; }
-.rv-trib { font: 400 10px var(--sans); fill: var(--faint); }
-.rv-tick { font: 400 10px var(--mono); fill: #e7e3db; }
-.rv-axis-label { font: 400 10px var(--sans); fill: var(--faint); letter-spacing: 0.08em; }
-.rv-city { font: 700 11px var(--sans); fill: #e7e3db; letter-spacing: 0.22em; }
+.rv-tick { font: 400 10px var(--mono); fill: var(--map-label); }
+.rv-city { font: 700 11px var(--sans); fill: var(--map-label); letter-spacing: 0.22em; }
 .rv-coast { stroke: var(--map-coast); stroke-width: 1.2; }
-.rv-sea { font: 400 9px var(--sans); fill: var(--faint); letter-spacing: 0.2em; }
 
 .gauge-mark[aria-current="true"] .dot { stroke: var(--accent); stroke-width: 3; }
-
-.river-key { color: var(--faint); font-size: 0.78rem; margin: 0.2rem 0 0; max-width: 60ch; }
 
 /* ---------- space-time view ---------- */
 
@@ -480,7 +470,8 @@ a:hover { color: #7fe9ff; }
 .g-val small { color: var(--faint); font-size: 0.74rem; margin-left: 0.2em; }
 
 /* Gridlines at 50 / 90 / 99 / 99.9, the 99 in alert because it is the
-   threshold a gauge has to cross to be called unusually high. */
+   threshold a gauge has to cross to be called unusually high. The positions
+   are set by monitor.js from the same scalePos() that places each pin. */
 .g-track {
   grid-column: 1 / -1;
   position: relative; height: 14px; border-radius: 2px;
@@ -490,7 +481,7 @@ a:hover { color: #7fe9ff; }
     linear-gradient(var(--alert), var(--alert)),
     linear-gradient(var(--line), var(--line));
   background-size: 1px 100%;
-  background-position: 9.1% 0, 30.3% 0, 60.6% 0, 90.9% 0;
+  background-position: var(--tick-0) 0, var(--tick-1) 0, var(--tick-2) 0, var(--tick-3) 0;
   background-repeat: no-repeat;
 }
 .g-track::before {
@@ -517,7 +508,6 @@ a:hover { color: #7fe9ff; }
 .g-flag .badge { white-space: nowrap; font-size: 0.64rem; }
 .g-flag .more { font-size: 0.68rem; color: var(--faint); }
 
-
 /* Only an exception gets a badge. "Normal" is signalled by its absence. */
 .badge {
   display: inline-flex; align-items: center; gap: 0.3rem;
@@ -525,20 +515,10 @@ a:hover { color: #7fe9ff; }
   text-transform: uppercase; color: var(--alert);
   border: 1px solid currentColor; border-radius: 999px; padding: 0.1rem 0.5rem;
 }
-.badge-quiet { color: var(--faint); }
 
 .caveat { grid-column: 1 / -1; font-size: 0.78rem; color: var(--faint); margin: 0.2rem 0 0; }
 
 /* ---------- chart ---------- */
-
-.detail { padding-block: 2.2rem; }
-
-.detail-head {
-  display: flex; flex-wrap: wrap; justify-content: space-between;
-  align-items: baseline; gap: 0.6rem;
-}
-.detail-head h2 { margin: 0; }
-.detail-sub { color: var(--faint); font-size: 0.8rem; margin: 0.3rem 0 0; }
 
 .viewtoggle { display: flex; gap: 0.25rem; }
 .viewtoggle button {
@@ -549,19 +529,17 @@ a:hover { color: #7fe9ff; }
 .viewtoggle button[aria-pressed="true"] { color: var(--text-strong); border-color: var(--series); }
 .viewtoggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Two stacked panels sharing one time axis - a hyetograph above a hydrograph.
-   NOT a dual-axis chart: two y-scales on one plot would invent a correlation,
-   because the alignment between them is arbitrary. */
+/* Rain hangs from the top in its own band and level sits below, on one time
+   axis. The bands never overlap, so neither scale can be slid to suggest the
+   two track each other. */
 #chartbox { margin-top: 1rem; }
 /* Sentence case, not uppercase: these labels carry a full sentence of context
    and letter-spaced caps make that shout. */
 .panel-label { font-size: 0.78rem; color: var(--faint); margin: 0 0 0.35rem; }
 .panel-label strong { color: var(--muted); font-weight: 600; }
-.panel-label + .levelbox { margin-bottom: 0; }
-.rainbox { position: relative; height: 74px; margin-bottom: 1rem; }
 .levelbox { position: relative; height: clamp(260px, 38vw, 340px); }
 #chartbox canvas { max-width: 100%; }
-.rain-key { background: rgba(98, 195, 234, 0.45); }
+.rain-key { background: var(--rain-bar); }
 .proj-key { background: none; border-top: 2px dashed var(--series); height: 0; }
 
 .legend {
@@ -573,8 +551,8 @@ a:hover { color: #7fe9ff; }
 .key { width: 1rem; height: 0.6rem; border-radius: 2px; flex: none; }
 .line-key { height: 0; border-top: 2px solid var(--series); }
 .dash-key { height: 0; border-top: 2px dashed var(--alert-mark); }
-.band-key.alert { background: rgba(158, 104, 5, 0.42); }
-.band-key.neutral { background: rgba(125, 133, 138, 0.3); }
+.band-key.alert { background: var(--ribbon-alert); }
+.band-key.neutral { background: var(--ribbon-untrusted); }
 
 .chartbox-small { position: relative; height: clamp(240px, 32vw, 300px); margin-top: 1.1rem; }
 .chartbox-small canvas { max-width: 100%; }
@@ -593,7 +571,7 @@ a:hover { color: #7fe9ff; }
 /* The chart, full size. Only ever one chart - it is moved here and back. */
 .modal {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(10, 14, 13, 0.7);
+  background: var(--scrim);
   display: flex; align-items: center; justify-content: center;
   padding: clamp(0.6rem, 3vw, 2rem);
 }

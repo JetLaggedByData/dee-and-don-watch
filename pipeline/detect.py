@@ -86,7 +86,7 @@ class DetectConfig:
         return cls(**{k: v for k, v in block.items() if k in known})
 
 
-def _true_runs(mask: np.ndarray) -> list[tuple[int, int]]:
+def true_runs(mask: np.ndarray) -> list[tuple[int, int]]:
     """Half-open [start, stop) spans of consecutive True values."""
     if not mask.any():
         return []
@@ -125,7 +125,7 @@ def find_gaps(s: pd.Series, cfg: DetectConfig) -> list[dict[str, Any]]:
     if s.empty:
         return []
     gaps = []
-    for start, stop in _true_runs(s.isna().to_numpy()):
+    for start, stop in true_runs(s.isna().to_numpy()):
         minutes = (stop - start) * cfg.freq_minutes
         if minutes >= cfg.min_gap_minutes:
             gaps.append(
@@ -154,7 +154,7 @@ def find_flatlines(s: pd.Series, cfg: DetectConfig) -> list[dict[str, Any]]:
     is_flat_window = ((rolling.max() - rolling.min()) <= cfg.flatline_tol_m).to_numpy()
 
     flatlines = []
-    for start, stop in _true_runs(is_flat_window):
+    for start, stop in true_runs(is_flat_window):
         # A flat window ending at `start` begins `window - 1` samples earlier.
         first = start - window + 1
         flatlines.append(

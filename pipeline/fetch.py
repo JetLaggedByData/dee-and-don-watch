@@ -1,7 +1,7 @@
 """Incremental fetch of 15-minute river levels into a local parquet cache.
 
     python pipeline/fetch.py              # top up each station
-    python pipeline/fetch.py --full       # ignore the cache and re-backfill
+    python pipeline/fetch.py --full       # re-request the whole backfill span
     python pipeline/fetch.py --station Garthdee --station Park
 
 First run per station backfills `fetch.backfill_years`. Later runs ask only for
@@ -23,7 +23,7 @@ from typing import Any
 
 import pandas as pd
 
-from common import REPO_ROOT, load_config, raw_dir
+from common import REPO_ROOT, load_config, raw_dir, slugify
 from sepa_client import SepaApiError, SepaClient, TimeseriesValues, client_from_config
 
 # SEPA caps a single request at 300,000 points. Stay clear of the edge so a
@@ -166,7 +166,7 @@ def update_station(
     same code serves both: they differ only in sample interval, cache
     directory and how far back to go.
     """
-    path = spec["dir"] / f"{station['name'].lower().replace(' ', '_')}.parquet"
+    path = spec["dir"] / f"{slugify(station['name'])}.parquet"
     cached = read_cache(path)
     rows_before = len(cached)
 
@@ -226,10 +226,10 @@ def update_station(
 def overlap_hours(config_value: float) -> float:
     """Overlap to re-request, in hours.
 
-    CI runs two cadences: a cheap quarter-hourly top-up that only needs the
-    last few hours, and one daily deep run using the full 35-day overlap that
-    catches SEPA'''s monthly quality-control revisions. The deep overlap is what
-    costs credits, so it is not worth paying 96 times a day.
+    CI runs two cadences: a cheap half-hourly top-up that only needs the last
+    few hours, and one daily deep run using the full 35-day overlap that
+    catches SEPA's monthly quality-control revisions. The deep overlap is what
+    costs credits, so it is not worth paying 48 times a day.
     """
     override = os.environ.get("DDW_OVERLAP_HOURS")
     if override:
@@ -270,7 +270,8 @@ def dataset_specs(config, which):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--full", action="store_true",
-                        help="ignore the cache and re-backfill from scratch")
+                        help="re-request the whole backfill span; fresher values "
+                             "replace cached ones")
     parser.add_argument("--station", action="append", dest="stations",
                         help="gauge name; repeatable. Default: all in config.yaml")
     parser.add_argument("--days", type=float, dest="backfill_days",

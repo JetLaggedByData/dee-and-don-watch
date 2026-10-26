@@ -7,12 +7,7 @@
 
   function $(id) { return document.getElementById(id); }
 
-  function fmtDateTime(iso) {
-    return new Date(iso).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
-    }) + ' UTC';
-  }
+  var token = window.DDW.token, esc = window.DDW.esc, fmtDateTime = window.DDW.fmtDateTime;
 
   function fmtDayHour(ms) {
     return new Date(ms).toLocaleString('en-GB', {
@@ -28,7 +23,7 @@
     var rows = river.gauges.map(function (g) {
       var pct = Math.min(Math.max((100 * g.hours_from_first) / span, 1.5), 98.5);
       return '<div class="cascade-row">' +
-          '<span class="cascade-label">' + g.name +
+          '<span class="cascade-label">' + esc(g.name) +
             '<small>' + g.km_to_aberdeen + ' km | ' + g.peak_m.toFixed(2) + ' m</small></span>' +
           '<span class="cascade-track">' +
             '<span class="cascade-marker" style="left:' + pct + '%">' +
@@ -60,7 +55,7 @@
     $('waveRivers').innerHTML = wave.rivers.map(riverHTML).join('');
 
     $('waveTributaries').innerHTML = wave.tributaries.map(function (t) {
-      return '<div class="chip">' + t.name + ' | ' + t.river +
+      return '<div class="chip">' + esc(t.name) + ' | ' + esc(t.river) +
         '<b>' + t.hours_before_outlet.toFixed(1) + 'h before ' + t.outlet + '</b></div>';
     }).join('');
 
@@ -69,7 +64,7 @@
 
     document.querySelector('#waveTable tbody').innerHTML = reaches.map(function (r) {
       return '<tr>' +
-        '<td>' + r.from + ' to ' + r.to + '</td>' +
+        '<td>' + esc(r.from) + ' to ' + esc(r.to) + '</td>' +
         '<td>' + r.km_apart + ' km</td>' +
         '<td>' + r.peak_to_peak_hours.toFixed(2) + ' h</td>' +
         '<td>' + (r.xcorr_hours === null ? '-' : r.xcorr_hours.toFixed(2) + ' h') +
@@ -111,10 +106,10 @@
     document.querySelector('#backtestTable tbody').innerHTML =
       backtest.results.map(function (row) {
         if (!row.peak) {
-          return '<tr><td>' + row.station + '</td><td colspan="5">No data in the event window</td></tr>';
+          return '<tr><td>' + esc(row.station) + '</td><td colspan="5">No data in the event window</td></tr>';
         }
         return '<tr>' +
-          '<td>' + row.station + '</td>' +
+          '<td>' + esc(row.station) + '</td>' +
           '<td>' + fmtDayHour(new Date(row.peak).getTime()) + '</td>' +
           '<td>' + row.peak_m.toFixed(2) + ' m<span class="base">' +
             row.peak_pct.toFixed(1) + 'th pct</span></td>' +
@@ -136,17 +131,8 @@
 
   /* ---------------- routing skill ---------------- */
 
-  /* One source of truth: the palette lives in :root, and the charts and the
-     map read it rather than carrying their own copies. Colour used to be
-     hardcoded in three JavaScript files, so a theme change meant editing four
-     places and trusting them to agree. */
-  function token(name, fallback) {
-    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
-    return (v || '').trim() || fallback;
-  }
-
-  var SERIES = token('--series', '#0d6ea3');
-  var ALERT = token('--alert-mark', '#b5651d');
+  var SERIES = token('--series');
+  var ALERT = token('--alert-mark');
 
   function renderRouting(routing) {
     var reaches = routing.reaches || [];
@@ -201,7 +187,7 @@
     datasets.push({
       label: 'No better than persistence',
       data: [{ x: allHours[0], y: 0 }, { x: allHours[allHours.length - 1], y: 0 }],
-      borderColor: token('--axis', '#6d736f'),
+      borderColor: token('--axis'),
       borderWidth: 1,
       borderDash: [4, 4],
       pointRadius: 0
@@ -230,32 +216,32 @@
         scales: {
           x: {
             type: 'linear',
-            title: { display: true, text: 'hours ahead', color: token('--axis', '#6d736f'),
+            title: { display: true, text: 'hours ahead', color: token('--axis'),
                      font: { family: 'Inter, sans-serif', size: 11 } },
-            ticks: { color: token('--axis', '#6d736f'), font: { family: 'JetBrains Mono, monospace', size: 10 } },
-            grid: { color: token('--grid', '#e6e2da'), drawTicks: false },
-            border: { color: token('--grid', '#e6e2da') }
+            ticks: { color: token('--axis'), font: { family: 'JetBrains Mono, monospace', size: 10 } },
+            grid: { color: token('--grid'), drawTicks: false },
+            border: { color: token('--grid') }
           },
           y: {
-            title: { display: true, text: 'skill vs persistence', color: token('--axis', '#6d736f'),
+            title: { display: true, text: 'skill vs persistence', color: token('--axis'),
                      font: { family: 'Inter, sans-serif', size: 11 } },
             ticks: {
-              color: token('--axis', '#6d736f'), font: { family: 'JetBrains Mono, monospace', size: 10 },
+              color: token('--axis'), font: { family: 'JetBrains Mono, monospace', size: 10 },
               callback: function (v) { return v + '%'; }
             },
-            grid: { color: token('--grid', '#e6e2da'), drawTicks: false },
+            grid: { color: token('--grid'), drawTicks: false },
             border: { display: false }
           }
         },
         plugins: {
           legend: {
             display: true,
-            labels: { color: token('--muted', '#5c625f'), boxWidth: 10, boxHeight: 10, usePointStyle: true,
+            labels: { color: token('--muted'), boxWidth: 10, boxHeight: 10, usePointStyle: true,
                       font: { family: 'Inter, sans-serif', size: 11 } }
           },
           tooltip: {
-            backgroundColor: token('--surface', '#ffffff'), borderColor: token('--line', '#ddd8d0'), borderWidth: 1,
-            titleColor: token('--text', '#1c1f1d'), bodyColor: token('--text', '#1c1f1d'), padding: 9,
+            backgroundColor: token('--surface'), borderColor: token('--line'), borderWidth: 1,
+            titleColor: token('--text'), bodyColor: token('--text'), padding: 9,
             titleFont: { family: 'JetBrains Mono, monospace', size: 11 },
             bodyFont: { family: 'JetBrains Mono, monospace', size: 12 },
             callbacks: {
@@ -273,7 +259,7 @@
     reaches.forEach(function (r) {
       var neg = r.horizons.filter(function (h) { return h.skill_extreme < 0; });
       if (neg.length) {
-        worst.push(r.outlet + ' from ' + neg[0].hours + ' h');
+        worst.push(esc(r.outlet) + ' from ' + neg[0].hours + ' h');
       }
     });
 
@@ -289,7 +275,7 @@
       return r.horizons.map(function (h) {
         var cls = h.skill_extreme < 0 ? ' class="neg"' : '';
         return '<tr>' +
-          '<td>' + r.outlet + '</td>' +
+          '<td>' + esc(r.outlet) + '</td>' +
           '<td>' + h.hours + ' h</td>' +
           '<td>' + h.persistence_rmse_m.toFixed(4) + ' m</td>' +
           '<td>' + h.model_rmse_m.toFixed(4) + ' m</td>' +
@@ -311,8 +297,7 @@
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (index) {
       if (!index) return;
-      var rec = index.stations[0].record;
-      years = Math.round((new Date(rec.to) - new Date(rec.from)) / (365.25 * 864e5));
+      years = window.DDW.recordYears(index.stations[0].record);
       $('attribution').textContent = index.attribution;
       return null;
     })

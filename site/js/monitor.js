@@ -5,25 +5,25 @@
 (function () {
   'use strict';
 
-  /* One source of truth: the palette lives in :root, and the charts and the
-     map read it rather than carrying their own copies. Colour used to be
-     hardcoded in three JavaScript files, so a theme change meant editing four
-     places and trusting them to agree. */
-  function token(name, fallback) {
-    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
-    return (v || '').trim() || fallback;
-  }
+  var token = window.DDW.token, esc = window.DDW.esc;
+  var fmtDateTime = window.DDW.fmtDateTime, recordYears = window.DDW.recordYears;
 
+  // Every colour comes from :root in style.css.
   var C = {
-    series: token('--series', '#0d6ea3'),
-    alert: token('--alert-mark', '#b5651d'),
-    neutral: token('--neutral-mark', '#9aa09b'),
-    grid: token('--grid', '#e6e2da'),
-    axis: token('--axis', '#6d736f'),
-    bg: token('--bg', '#f2efe9'),
-    surface: token('--surface', '#ffffff'),
-    text: token('--text', '#1c1f1d'),
-    line: token('--line', '#ddd8d0')
+    series: token('--series'),
+    alert: token('--alert-mark'),
+    grid: token('--grid'),
+    axis: token('--axis'),
+    surface: token('--surface'),
+    text: token('--text'),
+    line: token('--line'),
+    rainBar: token('--rain-bar'),
+    bandFill: token('--band-fill'),
+    ribbonAlert: token('--ribbon-alert'),
+    ribbonUntrusted: token('--ribbon-untrusted'),
+    ribbonTrack: token('--ribbon-track'),
+    mapWater: token('--map-water'),
+    mapSpate: token('--map-spate')
   };
 
   // Four data-quality flags are one idea to a reader: don't trust this stretch.
@@ -35,13 +35,6 @@
   var details = {};
 
   function $(id) { return document.getElementById(id); }
-
-  function fmtDateTime(iso) {
-    return new Date(iso).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
-    }) + ' UTC';
-  }
 
   /* "11 Oct, 17:30" is about 75 px; four of them do not fit the 290 px plot in
      a 25 rem panel. Over more than a couple of days the clock is noise anyway,
@@ -59,10 +52,6 @@
     if (spanMs !== undefined && d.getUTCHours() !== 0) return hm;
     return d.toLocaleString('en-GB',
       { day: '2-digit', month: 'short', timeZone: 'UTC' }) + ' ' + hm;
-  }
-
-  function recordYears(record) {
-    return Math.round((new Date(record.to) - new Date(record.from)) / (365.25 * 864e5));
   }
 
   function signed(v) {
@@ -121,7 +110,7 @@
     }
     if (stale.length) {
       msg.push('No recent data from <strong>' +
-        stale.map(function (s) { return s.name; }).join(', ') + '</strong>.');
+        stale.map(function (s) { return esc(s.name); }).join(', ') + '</strong>.');
     }
     if (!msg.length) return;
     banner.innerHTML = msg.join(' ') + ' Readings may be out of date.';
@@ -161,10 +150,11 @@
   function renderTrend() {
     var h = index.flagged_history;
     var el = $('trend');
-    if (!h || !h.counts || h.counts.length < 25) { el.hidden = true; return; }
+    var perDay = Math.round(24 / ((h && h.step_hours) || 1));
+    if (!h || !h.counts || h.counts.length <= perDay) { el.hidden = true; return; }
 
     var c = h.counts;
-    var now = c[c.length - 1], before = c[c.length - 25];
+    var now = c[c.length - 1], before = c[c.length - 1 - perDay];
     var text = now === before
       ? 'Unchanged from this time yesterday'
       : (now > before ? 'Up from ' : 'Down from ') +
@@ -183,7 +173,7 @@
     svg.setAttribute('class', 'spark');
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label',
-      'Gauges flagged over the last ' + Math.round(c.length / 24) +
+      'Gauges flagged over the last ' + Math.round(c.length / perDay) +
       ' days, highest ' + max + ', now ' + now + ' of ' + h.of);
     svg.innerHTML =
       '<path class="spark-area" d="' + line + 'L' + W + ',' + H + 'L0,' + H + 'Z"/>' +
@@ -207,8 +197,8 @@
     var x = scalePos(pct);
 
     return '' +
-      '<span class="g-name">' + station.name +
-        '<small>' + station.river + ' | ' + station.km_to_aberdeen + ' km</small></span>' +
+      '<span class="g-name">' + esc(station.name) +
+        '<small>' + esc(station.river) + ' | ' + station.km_to_aberdeen + ' km</small></span>' +
       '<span class="g-val">' + (l.value === null ? '-' : l.value.toFixed(3)) +
         '<small>m</small></span>' +
       '<span class="g-track" role="img" aria-label="Higher than ' + pctText(pct) +
@@ -231,15 +221,18 @@
     var list = $('gaugeList');
 
     // The scale, stated once above the rows rather than implied by thirteen
-    // anonymous bars.
+    // anonymous bars. Placed by the same scalePos() as every pin, and handed
+    // to the CSS gridlines as variables, so the three can never disagree.
+    var ticks = [[50, '50%'], [90, '90%'], [99, '99% unusual'], [99.9, '99.9%']];
     var scale = document.createElement('p');
     scale.className = 'g-scale';
     scale.setAttribute('aria-hidden', 'true');
-    scale.innerHTML =
-      '<span style="left:9.1%">50%</span>' +
-      '<span style="left:30.3%">90%</span>' +
-      '<span class="thresh" style="left:60.6%">99% unusual</span>' +
-      '<span style="left:90.9%">99.9%</span>';
+    scale.innerHTML = ticks.map(function (t, i) {
+      var x = scalePos(t[0]).toFixed(1) + '%';
+      list.style.setProperty('--tick-' + i, x);
+      return '<span' + (t[0] === 99 ? ' class="thresh"' : '') +
+        ' style="left:' + x + '">' + t[1] + '</span>';
+    }).join('');
     list.appendChild(scale);
 
     // Flagged gauges sort first, which made the percentile column read as a
@@ -268,20 +261,15 @@
   /* ---------------- the river ---------------- */
 
   var geo = null;
-  // One shared axis width, so the hyetograph and hydrograph line up exactly.
+  // A fixed y-axis width, so the plot does not shift as the tick labels change.
   var AXIS_W = 46;
   /* Share of the axis reserved above the data for the rain band. Enough that
      the bars never reach the level line, and no more: at 0.5 the data filled
      only 57% of the panel on a typical 24-hour window, which read as the
      chart being broken rather than as breathing room. */
   var RAIN_BAND = 0.18;
-  // Chart.js reserves horizontal room for an edge tick label. The level chart
-  // has x labels and the rainfall chart does not, so without an identical
-  // explicit padding the two plot areas end at different x and the shared time
-  // axis stops being shared.
-  // Only what the inner-aligned edge labels need. It was 40, reserved for a
-  // tick label hanging past the axis, which left the plot stopping well
-  // short of the panel edge.
+  // Only what the inner-aligned edge labels need, so the plot runs to the
+  // panel edge.
   var PLOT_PAD = { left: 0, right: 6, top: 2, bottom: 0 };
   var forecast = null;
   /* Up to 14 days comes from the station's 15-minute file; longer ranges come
@@ -306,7 +294,7 @@
   var customFrom = null;   // an explicit from/to overrides the preset range
   var customTo = null;
   var histories = {};
-  var order = [];     // the list's own order, for stepping inside the sheet
+  var order = [];     // the list's own order, for the previous/next buttons
   var current = null;
 
   function renderRiver() {
@@ -318,8 +306,7 @@
         g.setAttribute('aria-current', String(g.dataset.slug === current));
       });
     }
-    var MW = token('--map-water', '#2f7fb0');
-    var MS = token('--map-spate', '#b5651d');
+    var MW = C.mapWater, MS = C.mapSpate;
     function swatch(w, colour) {
       return '<svg width="42" height="12" aria-hidden="true">' +
                '<path d="M0,6 H42" stroke="' + colour + '" stroke-width="' + w +
@@ -369,11 +356,10 @@
       ctx.save();
 
       // A faint rule so the ribbon reads as a track even where it is empty.
-      ctx.fillStyle = 'rgba(125, 133, 138, 0.14)';
+      ctx.fillStyle = C.ribbonTrack;
       ctx.fillRect(area.left, top, area.right - area.left, RIBBON_H);
 
-      [['rgba(125, 133, 138, 0.75)', UNTRUSTED],
-       ['rgba(200, 144, 66, 0.95)', FINDING]].forEach(function (g) {
+      [[C.ribbonUntrusted, UNTRUSTED], [C.ribbonAlert, FINDING]].forEach(function (g) {
         ctx.fillStyle = g[0];
         g[1].forEach(function (name) {
           (opts.spans[name] || []).forEach(function (p) {
@@ -455,6 +441,91 @@
     };
   }
 
+  /* ---- pieces shared by the 15-minute chart and the daily-envelope chart ---- */
+
+  var MONO = 'JetBrains Mono, monospace';
+
+  function rainDataset(bars) {
+    return {
+      type: 'bar', label: 'Rainfall', data: bars, yAxisID: 'rain',
+      backgroundColor: C.rainBar, borderWidth: 0, barThickness: 'flex', order: 5
+    };
+  }
+
+  function thresholdDataset(threshold, x0, x1) {
+    return {
+      label: 'Unusually high above', yAxisID: 'y',
+      data: (threshold === null || threshold === undefined) ? []
+        : [{ x: x0, y: threshold }, { x: x1, y: threshold }],
+      borderColor: C.alert, borderWidth: 1.5, borderDash: [5, 5],
+      pointRadius: 0, order: 1
+    };
+  }
+
+  /* `x` is the caller's own x scale; everything else is common. Every level
+     dataset names yAxisID 'y': one that does not falls back to the first
+     y-type scale, and `rain` is reversed. Both x scales set offset: false,
+     because the rain bars otherwise make Chart.js pad half a tick of empty
+     plot at each end. */
+  function levelOptions(o) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: PLOT_PAD },
+      animation: o.animation,
+      interaction: { mode: 'index', axis: 'x', intersect: false },
+      scales: {
+        x: o.x,
+        y: {
+          afterFit: function (scale) { scale.width = AXIS_W; },
+          // 'ticks' (the default) stretches the axis out to the next round
+          // tick, which turned a -0.93..3.5 m year into a -2..6 m axis and
+          // left most of the panel empty. 'data' ends it where fitAxis says.
+          bounds: 'data',
+          afterDataLimits: fitAxis(o.threshold, o.rain.bars.length ? RAIN_BAND : 0),
+          ticks: { color: C.axis, font: { family: MONO, size: 10 },
+            callback: function (v) { return v.toFixed(2) + ' m'; } },
+          grid: { color: C.grid, drawTicks: false },
+          border: { display: false }
+        },
+        // Declared after `y` on purpose: a dataset with no yAxisID falls back
+        // to the first y-type scale, and this one is reversed.
+        rain: {
+          // Reversed, so a bar hangs DOWN from the top, and given several
+          // times the headroom it needs so the band never reaches the line.
+          // Not drawn as an axis: the peak is in the caption, values on hover.
+          position: 'right', reverse: true, beginAtZero: true,
+          max: o.rain.max ? o.rain.max * 5 : 1,
+          display: false,
+          afterFit: function (scale) { scale.width = 0; },
+          grid: { display: false },
+          border: { display: false }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.line, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.text, padding: 9, displayColors: false,
+          titleFont: { family: MONO, size: 11 },
+          bodyFont: { family: MONO, size: 12 },
+          callbacks: {
+            title: o.title,
+            label: function (i) {
+              // Datasets named with a leading underscore only close a fill.
+              if (i.dataset.label.charAt(0) === '_') return null;
+              // Rain shares the plot, so it carries its own unit here.
+              if (i.dataset.label === 'Rainfall') {
+                return 'Rainfall: ' + i.parsed.y.toFixed(1) + o.rain.unit;
+              }
+              return i.dataset.label + ': ' + i.parsed.y.toFixed(3) + ' m';
+            }
+          }
+        }
+      }
+    };
+  }
+
   /* The daily envelope: minimum to maximum each day, with the mean through
      it. The band is the honest part - a mean alone would hide the short sharp
      rises this project exists to notice. */
@@ -501,95 +572,37 @@
       type: 'line',
       data: {
         datasets: ([
-          rainBars.length ? {
-            type: 'bar', label: 'Rainfall', data: rainBars, yAxisID: 'rain',
-            backgroundColor: 'rgba(98, 195, 234, 0.42)',
-            borderWidth: 0, barThickness: 'flex', order: 5
-          } : null,
+          rainBars.length ? rainDataset(rainBars) : null,
           { label: 'Daily high', data: hi, yAxisID: 'y', borderWidth: 0, pointRadius: 0,
-            fill: '+1', backgroundColor: 'rgba(44, 158, 211, 0.13)', order: 3 },
+            fill: '+1', backgroundColor: C.bandFill, order: 3 },
           { label: '_dailyLow', data: lo, yAxisID: 'y', borderWidth: 0, pointRadius: 0, order: 3 },
           { label: 'Daily mean', data: mid, yAxisID: 'y', borderColor: C.series, borderWidth: 1.4,
             pointRadius: 0, tension: 0.1, order: 2 },
-          { label: 'Unusually high above', yAxisID: 'y',
-            data: (threshold === null || threshold === undefined) ? []
-              : [{ x: mid[0].x, y: threshold },
-                 { x: mid[mid.length - 1].x, y: threshold }],
-            borderColor: C.alert, borderWidth: 1.5, borderDash: [5, 5],
-            pointRadius: 0, order: 1 }
+          thresholdDataset(threshold, mid[0].x, mid[mid.length - 1].x)
         ]).filter(Boolean)
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: PLOT_PAD },
-        animation: false,
-        interaction: { mode: 'index', axis: 'x', intersect: false },
-        scales: {
-          x: {
-            type: 'linear',
-            min: mid[0].x, max: mid[mid.length - 1].x,
-            // Ticks spaced evenly across the DATA, not at round numbers in
-            // epoch milliseconds. Left to itself the scale picked 1.4e12 and
-            // friends, which are real dates - 13 May 2014 - just not ones in
-            // this record, which starts in 2016.
-            afterBuildTicks: function (scale) {
-              var a = scale.min, b = scale.max, out = [];
-              for (var i = 0; i <= 3; i++) out.push({ value: a + (b - a) * i / 3 });
-              scale.ticks = out;
-            },
-            ticks: { color: C.axis, includeBounds: false, align: 'inner',
-              font: { family: 'JetBrains Mono, monospace', size: 10 },
-              callback: function (v) { return fmtDay(v, longSpan); } },
-            grid: { color: C.grid, drawTicks: false },
-            border: { color: C.grid }
+      options: levelOptions({
+        threshold: threshold, rain: rain, animation: false,
+        title: function (i) { return fmtDay(i[0].parsed.x, true); },
+        x: {
+          type: 'linear', offset: false,
+          min: mid[0].x, max: mid[mid.length - 1].x,
+          // Ticks spaced evenly across the DATA, not at round numbers in
+          // epoch milliseconds. Left to itself the scale picked 1.4e12 and
+          // friends, which are real dates - 13 May 2014 - just not ones in
+          // this record, which starts in 2016.
+          afterBuildTicks: function (scale) {
+            var a = scale.min, b = scale.max, out = [];
+            for (var k = 0; k <= 3; k++) out.push({ value: a + (b - a) * k / 3 });
+            scale.ticks = out;
           },
-          rain: {
-            // Reversed, so a bar hangs DOWN from the top into a band of its
-            // own. Not drawn as an axis - the peak is in the caption and the
-            // exact value is on hover.
-            position: 'right', reverse: true, beginAtZero: true,
-            max: rain.max ? rain.max * 5 : 1,
-            display: false,
-            afterFit: function (scale) { scale.width = 0; },
-            grid: { display: false },
-            border: { display: false }
-          },
-          y: {
-            afterFit: function (scale) { scale.width = AXIS_W; },
-            // 'ticks' (the default) stretches the axis out to the next round
-            // tick, which turned a -0.93..3.5 m year into a -2..6 m axis and
-            // left most of the panel empty. 'data' ends the axis where
-            // fitAxis says it should.
-            bounds: 'data',
-            afterDataLimits: fitAxis(threshold, rainBars.length ? RAIN_BAND : 0),
-            ticks: { color: C.axis, font: { family: 'JetBrains Mono, monospace', size: 10 },
-              callback: function (v) { return v.toFixed(2) + ' m'; } },
-            grid: { color: C.grid, drawTicks: false },
-            border: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: C.surface, borderColor: C.line, borderWidth: 1,
-            titleColor: C.text, bodyColor: C.text, padding: 9, displayColors: false,
-            titleFont: { family: 'JetBrains Mono, monospace', size: 11 },
-            bodyFont: { family: 'JetBrains Mono, monospace', size: 12 },
-            callbacks: {
-              title: function (i) { return fmtDay(i[0].parsed.x, true); },
-              label: function (i) {
-                // The lower edge exists only to close the fill.
-                if (i.dataset.label === '_dailyLow') return null;
-                if (i.dataset.label === 'Rainfall') {
-                  return 'Rainfall: ' + i.parsed.y.toFixed(1) + (rain.unit || ' mm/day');
-                }
-                return i.dataset.label + ': ' + i.parsed.y.toFixed(3) + ' m';
-              }
-            }
-          }
+          ticks: { color: C.axis, includeBounds: false, align: 'inner',
+            font: { family: MONO, size: 10 },
+            callback: function (v) { return fmtDay(v, longSpan); } },
+          grid: { color: C.grid, drawTicks: false },
+          border: { color: C.grid }
         }
-      }
+      })
     });
   }
 
@@ -621,8 +634,7 @@
      panel "25 Sep 26" four times over collides; "25 Sep" does not. */
   function fmtDay(ms, withYear) {
     var d = new Date(ms);
-    return d.getUTCDate() + ' ' +
-      ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()] +
+    return d.getUTCDate() + ' ' + window.DDW.MONTHS[d.getUTCMonth()] +
       (withYear ? ' ' + String(d.getUTCFullYear()).slice(2) : '');
   }
 
@@ -695,8 +707,8 @@
        as far as the measured skill holds. The band is the model\'s own test
        error, so the drawn uncertainty is measured rather than decorative.
 
-       Computed before the rainfall chart, because both charts share an x-range
-       and that range has to include the projection. */
+       Computed before the rain bars, because the x-range has to include the
+       projection and the rain is clipped to that range. */
     var fc = forecast && forecast.reaches && forecast.reaches[station.slug];
     var proj = [], bandHi = [], bandLo = [];
     if (fc) {
@@ -782,7 +794,7 @@
     } else if (fc) {
       $('projNote').innerHTML =
         'The dashed line routes water <strong>already measured</strong> at ' +
-        fc.upstream.join(', ') + ' down to here. It uses no weather forecast, and ' +
+        esc(fc.upstream.join(', ')) + ' down to here. It uses no weather forecast, and ' +
         'stops at 12 h because past this catchment\'s ' + fc.travel_time_hours +
         ' h travel time the water has not entered the river yet. The band is ' +
         'the model\'s own error on data it was not trained on. ' +
@@ -796,21 +808,12 @@
       type: 'line',
       data: {
         datasets: ([
-          rainBars.length ? {
-            type: 'bar', label: 'Rainfall', data: rainBars, yAxisID: 'rain',
-            backgroundColor: 'rgba(98, 195, 234, 0.42)',
-            borderWidth: 0, barThickness: 'flex', order: 5
-          } : null,
+          rainBars.length ? rainDataset(rainBars) : null,
           { label: 'Level', data: points, yAxisID: 'y', borderColor: C.series, borderWidth: 2,
             pointRadius: 0, pointHoverRadius: 0, tension: 0.1, spanGaps: false, order: 2 },
-          { label: 'Unusually high above', yAxisID: 'y',
-            data: (threshold === null || threshold === undefined) ? []
-              : [{ x: firstX, y: threshold }, { x: lastX, y: threshold }],
-            borderColor: C.alert, borderWidth: 1.5, borderDash: [5, 5],
-            pointRadius: 0, order: 1 },
+          thresholdDataset(threshold, firstX, lastX),
           { label: 'Likely range', data: bandHi, yAxisID: 'y', borderWidth: 0,
-            pointRadius: 0, fill: '+1',
-            backgroundColor: 'rgba(44, 158, 211, 0.13)', order: 4 },
+            pointRadius: 0, fill: '+1', backgroundColor: C.bandFill, order: 4 },
           { label: '_bandLo', data: bandLo, yAxisID: 'y', borderWidth: 0,
             pointRadius: 0, order: 4 },
           { label: 'Projected from water upstream', data: proj, yAxisID: 'y',
@@ -818,79 +821,25 @@
             pointRadius: 0, pointHoverRadius: 0, tension: 0.1, order: 3 }
         ]).filter(Boolean)
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: PLOT_PAD },
-        animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-          ? false : { duration: 250 },
-        interaction: { mode: 'index', axis: 'x', intersect: false },
-        scales: {
+      options: (function () {
+        var opts = levelOptions({
+          threshold: threshold, rain: rain,
+          animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? false : { duration: 250 },
+          title: function (i) { return fmtDayHour(i[0].parsed.x) + ' UTC'; },
           // Linear axis over epoch ms - no date-adapter dependency.
           x: {
-            type: 'linear', min: firstX, max: lastX,
+            type: 'linear', offset: false, min: firstX, max: lastX,
             ticks: { maxTicksLimit: 4, align: 'inner', color: C.axis,
-              font: { family: 'JetBrains Mono, monospace', size: 10 },
+              font: { family: MONO, size: 10 },
               callback: function (v) { return fmtDayHour(v, lastX - firstX); } },
             grid: { color: C.grid, drawTicks: false },
             border: { color: C.grid }
-          },
-          // `rain` is declared AFTER `y` on purpose. A dataset with no
-          // yAxisID falls back to the first y-type scale in this object, and
-          // this one is reversed - every level dataset now names 'y'
-          // explicitly as well, but the order is the second line of defence.
-          rain: {
-            // Reversed, so a bar hangs DOWN from the top, and given several
-            // times the headroom it needs so the band never reaches the line.
-            // Not drawn as an axis: a second axis stack on the opposite side
-            // was what made one chart read as two bolted together. The peak is
-            // stated in the caption and exact values are on hover.
-            position: 'right', reverse: true, beginAtZero: true,
-            max: rain.max ? rain.max * 5 : 1,
-            display: false,
-            afterFit: function (scale) { scale.width = 0; },
-            grid: { display: false },
-            border: { display: false }
-          },
-          y: {
-            afterFit: function (scale) { scale.width = AXIS_W; },
-            // 'ticks' (the default) stretches the axis out to the next round
-            // tick, which turned a -0.93..3.5 m year into a -2..6 m axis and
-            // left most of the panel empty. 'data' ends the axis where
-            // fitAxis says it should.
-            bounds: 'data',
-            afterDataLimits: fitAxis(threshold, rainBars.length ? RAIN_BAND : 0),
-            // Headroom at the top so the line stays clear of the rain band.
-            ticks: { color: C.axis, font: { family: 'JetBrains Mono, monospace', size: 10 },
-              callback: function (v) { return v.toFixed(2) + ' m'; } },
-            grid: { color: C.grid, drawTicks: false },
-            border: { display: false }
-          },
-        },
-        plugins: {
-          legend: { display: false },
-          bands: { spans: detail.spans, times: times },
-          tooltip: {
-            backgroundColor: C.surface, borderColor: C.line, borderWidth: 1,
-            titleColor: C.text, bodyColor: C.text, padding: 9, displayColors: false,
-            titleFont: { family: 'JetBrains Mono, monospace', size: 11 },
-            bodyFont: { family: 'JetBrains Mono, monospace', size: 12 },
-            callbacks: {
-              title: function (i) { return fmtDayHour(i[0].parsed.x) + ' UTC'; },
-              label: function (i) {
-                // The lower band edge exists only to close the fill.
-                if (i.dataset.label === '_bandLo') return null;
-                // Rain is the other measure sharing this plot, so it has to
-                // carry its own unit here - the axis no longer states it.
-                if (i.dataset.label === 'Rainfall') {
-                  return 'Rainfall: ' + i.parsed.y.toFixed(1) + (rain.unit || ' mm/hr');
-                }
-                return i.dataset.label + ': ' + i.parsed.y.toFixed(3) + ' m';
-              }
-            }
           }
-        }
-      },
+        });
+        opts.plugins.bands = { spans: detail.spans, times: times };
+        return opts;
+      })(),
       plugins: [bandsPlugin]
     });
   }
@@ -963,7 +912,7 @@
       html += '<ul>' + up.map(function (s) {
         var p = s.latest.level_pct;
         var hot = flagsOf(s).length;
-        return '<li><span class="u-name">' + s.name + '</span>' +
+        return '<li><span class="u-name">' + esc(s.name) + '</span>' +
           '<span class="u-pct' + (hot ? ' hot' : '') + '">' +
             (p === null ? '-' : pctText(p)) + '</span>' +
           '<span class="u-km">' +
@@ -986,7 +935,7 @@
     box.innerHTML = html;
   }
 
-  /* ---------------- detail sheet ---------------- */
+  /* ---------------- detail view ---------------- */
 
   var lastFocus = null;
 
@@ -1016,7 +965,7 @@
       if (!s) return '';
       return '<button type="button" data-slug="' + slug + '"' +
         (flagsOf(s).length ? ' class="hot"' : '') +
-        ' aria-pressed="false">' + s.name + '</button>';
+        ' aria-pressed="false">' + esc(s.name) + '</button>';
     }).join('');
     Array.prototype.forEach.call(bar.querySelectorAll('button'), function (b) {
       b.addEventListener('click', function () { select(b.dataset.slug); });
@@ -1088,7 +1037,7 @@
     if (isChart && chart) chart.resize();
   }
 
-  /* The sheet covers the list it was opened from, so without this the only
+  /* The detail view covers the list it was opened from, so without this the only
      route to another gauge is to close it first. */
   function updateHash() {
     if (!current || !window.history || !history.replaceState) return;
@@ -1218,8 +1167,6 @@
       renderAnswer(flagged);
       renderTrend();
       renderRiver();
-      // Outlines are static and cheap; redraw once they land rather than
-      // blocking the whole page on them.
       fetch('data/forecast.json')
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (f) { if (f) { forecast = f; if (current) select(current, true); } })

@@ -79,7 +79,6 @@ detect:
 # Rain is NOT run through the level detectors. It is context: it answers
 # "did rain precede this rise", which the level series alone cannot.
 rain:
-  ts_path: "*/*/RE/Hour.Total"
   freq_minutes: 60
   raw_dir: data/raw_rain
   backfill_years: 10

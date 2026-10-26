@@ -20,6 +20,7 @@ from conftest import (
     freeze,
     index_of,
 )
+from pipeline.common import load_config
 from pipeline.detect import (
     QUALITY_GOOD,
     QUALITY_SUSPECT,
@@ -36,6 +37,17 @@ from pipeline.detect import (
 )
 
 CFG = DetectConfig()
+
+
+def test_config_yaml_matches_the_tested_defaults():
+    """Every test here runs on the dataclass defaults; CI runs on config.yaml.
+
+    If the two drift apart, the suite is testing a detector nobody runs.
+    `from_config` drops unknown keys silently, so a typo is checked for too.
+    """
+    block = load_config()["detect"]
+    assert set(block) <= set(DetectConfig.__dataclass_fields__), "unknown detect key"
+    assert DetectConfig.from_config(load_config()) == CFG
 
 
 # --------------------------------------------------------------------------- #
@@ -142,6 +154,31 @@ def test_sustained_fast_rise_is_flagged(clean, history):
     assert flags["is_fast_rise"].iloc[window].any()
     assert flags["roc_pct_1h"].iloc[window].max() >= CFG.rise_pct_high
     assert flags["roc_1h"].iloc[window].max() >= CFG.rise_min_m_per_hr
+
+
+def test_level_above_the_record_is_flagged_high(clean, history):
+    raised = add_ramp(clean, 1000, hours=6, per_hour=0.3)   # +1.8 m, then held
+    plateau = slice(1000 + 6 * PER_HOUR + 8, 1000 + 6 * PER_HOUR + 8 * PER_HOUR)
+
+    flags = build_flags(raised, history, CFG)
+
+    assert flags["is_high_level"].iloc[plateau].all()
+    assert (flags["level_pct"].iloc[plateau] >= CFG.high_level_pct).all()
+
+
+def test_stuck_sensor_suppresses_a_high_level(clean, history):
+    """A sensor frozen at a high reading is a fault, not a high river."""
+    raised = add_ramp(clean, 1000, hours=6, per_hour=0.3)
+    held = 1000 + 6 * PER_HOUR + 8
+    stuck = freeze(raised, held, 12 * PER_HOUR)
+
+    flags = build_flags(stuck, history, CFG)
+    frozen = slice(held, held + 12 * PER_HOUR)
+
+    assert flags["is_flatline"].iloc[frozen].all()
+    assert not flags["is_high_level"].iloc[frozen].any(), (
+        "a stuck sensor was reported as an unusually high river"
+    )
 
 
 def test_rate_of_rise_is_nan_across_a_gap(clean):

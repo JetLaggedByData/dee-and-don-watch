@@ -31,9 +31,7 @@ window.DDWSpaceTime = (function () {
   var rows = [], span = null;   // geometry kept for the hover readout
   var unit = '% of its own record';
 
-  function esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
+  var esc = window.DDW.esc, MONTH = window.DDW.MONTHS;
 
   function rgb(pct) {
     var t = Math.max(0, Math.min(100, pct)) / 100 * (RAMP.length - 1);
@@ -67,9 +65,6 @@ window.DDWSpaceTime = (function () {
     ctx.putImageData(img, 0, 0);
     return c.toDataURL('image/png');
   }
-
-  var MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   /* Tick spacing follows the window. A fortnight wants dates every couple of
      days; a 72-hour event wants times, or the axis carries two labels. */

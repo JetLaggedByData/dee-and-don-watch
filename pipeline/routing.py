@@ -54,8 +54,6 @@ Data: SEPA, provisional, Open Government Licence.
 from __future__ import annotations
 
 import argparse
-import json
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -65,7 +63,13 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from common import REPO_ROOT, load_config, raw_dir, slugify
+from common import (
+    REPO_ROOT,
+    hourly_catchment_rain,
+    load_config,
+    load_station_frames,
+    write_json,
+)
 from detect import to_regular_grid
 
 HORIZONS_H = (1, 2, 3, 4, 6, 8, 12, 16, 24, 36, 48)
@@ -84,29 +88,17 @@ REACHES = {
 
 
 def load_levels(config: dict[str, Any]) -> dict[str, pd.Series]:
-    directory = raw_dir(config)
     freq = config["detect"]["freq_minutes"]
-    out = {}
-    for station in config["stations"]:
-        path = directory / f"{slugify(station['name'])}.parquet"
-        if path.exists():
-            out[station["name"]] = to_regular_grid(pd.read_parquet(path)["value"], freq)
-    return out
+    return {name: to_regular_grid(frame["value"], freq)
+            for name, frame in load_station_frames(config).items()}
 
 
 def catchment_rain(config: dict[str, Any], catchment: str) -> pd.Series:
     """Hourly catchment-mean rainfall, resampled onto the level grid."""
-    directory = REPO_ROOT / config["rain"]["raw_dir"]
-    gauges = [g for g in config.get("rain_stations", []) if g["catchment"] == catchment]
-    frames = []
-    for gauge in gauges:
-        path = directory / f"{slugify(gauge['name'])}.parquet"
-        if path.exists():
-            frames.append(pd.read_parquet(path)["value"].rename(gauge["name"]))
-    if not frames:
-        return pd.Series(dtype="float64")
-    freq = f"{config['detect']['freq_minutes']}min"
-    return pd.concat(frames, axis=1).mean(axis=1).resample(freq).ffill()
+    hourly = hourly_catchment_rain(config, catchment)
+    if hourly.empty:
+        return hourly
+    return hourly.resample(f"{config['detect']['freq_minutes']}min").ffill()
 
 
 def build_features(
@@ -254,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         upstream = {n: levels[n] for n in lags if n in levels}
         if not upstream:
             continue
-        rain = catchment_rain(config, by_name[outlet].get("catchment", ""))
+        rain = catchment_rain(config, by_name[outlet]["catchment"])
         extra = " + catchment rainfall" if not rain.empty else ""
         print(NEWLINE + outlet + " - from " + ", ".join(upstream) + extra)
         rows = evaluate(levels[outlet], upstream, lags, rain, freq)
@@ -271,11 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     print("no longer hold the water in question, and skill falls away.")
 
     if args.json:
-        out = Path(args.json)
-        if not out.is_absolute():
-            out = REPO_ROOT / out
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps({
+        out = write_json(args.json, {
             "generated_utc": pd.Timestamp.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "method": "gradient boosting on upstream level, rate of change shifted by "
                       "measured travel time, and catchment rainfall windows",
@@ -287,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
             "note": "Routing of water already in the channel. forecast.py publishes "
                     "the first 12 hours live; no rainfall forecast is used.",
             "reaches": results,
-        }, indent=1), encoding="utf-8")
+        }, indent=1)
         print(NEWLINE + "Wrote " + str(out.relative_to(REPO_ROOT)))
 
     return 0

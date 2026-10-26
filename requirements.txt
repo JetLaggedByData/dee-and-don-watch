@@ -1,9 +1,12 @@
-requests>=2.31
-# Pinned below 3.x: the pandas 3.1.0 wheel's _libs/window/indexers DLL is blocked
-# by Windows Application Control on this machine. 2.3.x loads fine.
+# Capped below the next major so an unattended scheduled run cannot pick up a
+# breaking release. Developed and run on pandas 2.3, numpy 2.5, pyarrow 26,
+# scikit-learn 1.9.
+requests>=2.31,<3
+# pandas 3.x is held back until it has been tested against this pipeline.
 pandas>=2.2,<3
-numpy>=1.26
-pyarrow>=15.0
-PyYAML>=6.0
-pytest>=8.0
-scikit-learn>=1.4
+numpy>=1.26,<3
+pyarrow>=15.0,<27
+PyYAML>=6.0,<7
+pytest>=8.0,<10
+scikit-learn>=1.4,<2
+# Pillow is needed only by pipeline/bake_satellite.py, a one-off run by hand.

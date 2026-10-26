@@ -24,17 +24,14 @@ Government Licence.
 from __future__ import annotations
 
 import argparse
-import json
-import sys
 from datetime import timedelta
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from common import REPO_ROOT, load_config, raw_dir, slugify
-from detect import DetectConfig, build_flags
+from common import REPO_ROOT, load_config, load_station_frames, write_json
+from detect import DetectConfig, build_flags, true_runs
 
 LOOKBACK_HOURS = 72  # how far before a peak a flag still counts as early warning
 CLUSTER_HOURS = 72  # peaks this close together are one basin-wide event
@@ -72,7 +69,7 @@ def pick_event(
 ) -> tuple[pd.Timestamp, list[str]]:
     """The biggest basin-wide event: most stations, then highest-ranked peaks.
 
-    Breadth alone is not enough to choose by. Several storms bring all five
+    Breadth alone is not enough to choose by. Several storms bring most of the
     gauges to a top-20 peak at once, and ranking those only by how many
     stations took part picks whichever happened first, not whichever was worst.
     `find_peaks` returns each station's peaks strongest-first, so the mean rank
@@ -105,14 +102,8 @@ def pick_event(
 
 def episodes(mask: pd.Series) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
     """Contiguous runs of True, as (start, end) timestamps."""
-    flags = mask.to_numpy(dtype=bool)
-    if not flags.any():
-        return []
-    padded = np.concatenate(([False], flags, [False]))
-    edges = np.flatnonzero(padded[1:] != padded[:-1])
-    return [
-        (mask.index[a], mask.index[b - 1]) for a, b in zip(edges[::2], edges[1::2])
-    ]
+    return [(mask.index[a], mask.index[b - 1])
+            for a, b in true_runs(mask.to_numpy(dtype=bool))]
 
 
 def false_alarms(
@@ -179,24 +170,18 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config()
     cfg = DetectConfig.from_config(config)
-    cache_dir = raw_dir(config)
 
     flags_by_station: dict[str, pd.DataFrame] = {}
     peaks_by_station: dict[str, list[pd.Timestamp]] = {}
 
-    for station in config["stations"]:
-        path = cache_dir / f"{slugify(station['name'])}.parquet"
-        if not path.exists():
-            print(f"No cache for {station['name']} - run fetch.py first", file=sys.stderr)
-            return 1
-        frame = pd.read_parquet(path)
+    for name, frame in load_station_frames(config).items():
         values = frame["value"]
         flags = build_flags(values, values, cfg, quality=frame["quality"])
-        flags_by_station[station["name"]] = flags
+        flags_by_station[name] = flags
         # Peaks are found on trustworthy readings only. Garthdee's record high
         # sits inside a stretch SEPA marks Suspect, and grading the detectors
         # against a probable sensor fault would flatter them.
-        peaks_by_station[station["name"]] = find_peaks(
+        peaks_by_station[name] = find_peaks(
             flags["value"].where(~flags["is_suspect"])
         )
 
@@ -262,10 +247,6 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if args.json:
-        out = Path(args.json)
-        if not out.is_absolute():
-            out = REPO_ROOT / out
-        out.parent.mkdir(parents=True, exist_ok=True)
         serialisable = []
         for row in results:
             copy = dict(row)
@@ -282,20 +263,14 @@ def main(argv: list[str] | None = None) -> int:
                 for column, detail in row.get("flags", {}).items()
             }
             serialisable.append(copy)
-        out.write_text(
-            json.dumps(
-                {
-                    "event_utc": event_time.isoformat(),
-                    "stations_involved": involved,
-                    "lookback_hours": LOOKBACK_HOURS,
-                    "false_alarm_hours": FALSE_ALARM_HOURS,
-                    "top_peaks": TOP_PEAKS,
-                    "results": serialisable,
-                },
-                indent=1,
-            ),
-            encoding="utf-8",
-        )
+        out = write_json(args.json, {
+            "event_utc": event_time.isoformat(),
+            "stations_involved": involved,
+            "lookback_hours": LOOKBACK_HOURS,
+            "false_alarm_hours": FALSE_ALARM_HOURS,
+            "top_peaks": TOP_PEAKS,
+            "results": serialisable,
+        }, indent=1)
         print(f"\nWrote {out.relative_to(REPO_ROOT)}")
 
     return 0
