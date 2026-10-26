@@ -180,23 +180,30 @@ def main(argv: list[str] | None = None) -> int:
         if len(gauges) >= 2:
             rivers.append(trace_river(river, gauges, cfg))
 
-    outlet = min(
-        (e for e in loaded.values() if e["station"]["main_stem"] and e["peak"]),
-        key=lambda e: e["km"],
-    )
-    tributaries = [
-        {
+    # Each tributary is timed against the lowest main-stem gauge of its own
+    # catchment: the Urie joins the Don, so Pitcaple is compared with Parkhill,
+    # not with Garthdee on the Dee.
+    outlets: dict[str, Any] = {}
+    for e in loaded.values():
+        if e["station"]["main_stem"] and e["peak"] is not None:
+            catchment = e["station"]["catchment"]
+            if catchment not in outlets or e["km"] < outlets[catchment]["km"]:
+                outlets[catchment] = e
+    tributaries = []
+    for e in loaded.values():
+        outlet = outlets.get(e["station"]["catchment"])
+        if e["station"]["main_stem"] or e["peak"] is None or outlet is None:
+            continue
+        tributaries.append({
             "name": e["name"],
             "river": e["station"]["river"],
             "peak_utc": e["peak"].isoformat(),
             "peak_m": round(float(e["peak_m"]), 3),
+            "outlet": outlet["name"],
             "hours_before_outlet": round(
                 (outlet["peak"] - e["peak"]).total_seconds() / 3600, 2
             ),
-        }
-        for e in loaded.values()
-        if not e["station"]["main_stem"] and e["peak"] is not None
-    ]
+        })
     tributaries.sort(key=lambda t: t["peak_utc"])
 
     # ---- report ---- #
@@ -225,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         for t in tributaries:
             print(f"  {t['name']:<12}{t['river']:<8}"
                   f"{pd.Timestamp(t['peak_utc']):%Y-%m-%d %H:%M}{t['peak_m']:>7.2f}"
-                  f"   {t['hours_before_outlet']:.2f} h before the lowest main-stem peak")
+                  f"   {t['hours_before_outlet']:.2f} h before {t['outlet']}")
 
     print("\nDistances are straight-line to Aberdeen, not along the channel, so the "
           "speeds are apparent and the real path is longer.")

@@ -1,6 +1,6 @@
-/* Dee & Don Watch - the method page: flood wave, backtest, limitations.
-   No Chart.js here; the cascade is plain HTML, which is lighter and more
-   accessible than a canvas for nine labelled points. */
+/* Dee & Don Watch - the method page: flood wave, backtest, routing skill.
+   The cascade is plain HTML, lighter and more accessible than a canvas for
+   nine labelled points; only the skill curve uses Chart.js. */
 
 (function () {
   'use strict';
@@ -61,7 +61,7 @@
 
     $('waveTributaries').innerHTML = wave.tributaries.map(function (t) {
       return '<div class="chip">' + t.name + ' | ' + t.river +
-        '<b>' + t.hours_before_outlet.toFixed(1) + 'h earlier</b></div>';
+        '<b>' + t.hours_before_outlet.toFixed(1) + 'h before ' + t.outlet + '</b></div>';
     }).join('');
 
     var reaches = [];
@@ -207,11 +207,17 @@
       pointRadius: 0
     });
 
+    // Built from the data, so the description cannot drift from the curve.
+    var summary = reaches.map(function (r) {
+      var best = r.horizons.reduce(function (a, h) { return h.skill_extreme > a.skill_extreme ? h : a; });
+      var neg = r.horizons.filter(function (h) { return h.skill_extreme < 0; })[0];
+      return r.outlet + ' peaks at ' + Math.round(100 * best.skill_extreme) + '% at ' +
+        best.hours + ' h' + (neg ? ' and drops below zero at ' + neg.hours + ' h' : '');
+    }).join('; ');
     var canvas = $('skillChart');
     canvas.setAttribute('aria-label',
-      'Forecast skill against horizon. Skill during floods peaks near 4 hours at about 72% ' +
-      'better than persistence, and falls below zero beyond roughly 16 to 24 hours, close to ' +
-      'each catchment\u2019s measured travel time. Full figures are in the table below.');
+      'Flood skill against horizon, compared with persistence. ' + summary +
+      '. Full figures are in the table below.');
 
     new Chart(canvas.getContext('2d'), {
       type: 'line',
@@ -276,8 +282,8 @@
       'better than assuming the level stays put; <strong class="neg">below zero means worse ' +
       'than doing nothing</strong>' +
       (worst.length ? ' - which happens at ' + worst.join(' and ') + '.' : '.') +
-      ' That is why this is capped at the catchment\u2019s travel time rather than extended ' +
-      'to days: past it, the water has not entered the river yet.';
+      ' That is why the live projection stops at 12 hours rather than extending to days: ' +
+      'past the catchment\'s travel time, the water has not entered the river yet.';
 
     document.querySelector('#routingTable tbody').innerHTML = reaches.map(function (r) {
       return r.horizons.map(function (h) {

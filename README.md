@@ -18,7 +18,6 @@ gauge's history, and nothing in the feed says whether a reading is the river or 
 
 - **Level:** 13 gauges, 15-minute, 10 years
 - **Rainfall:** 12 gauges, hourly
-- **Flow:** flood peaks since 1971
 
 All of it comes from the [SEPA time series API](https://timeseriesdoc.sepa.org.uk/api-documentation/),
 and is refreshed every 30 minutes by a GitHub Action. The browser never calls SEPA.
@@ -48,8 +47,8 @@ Backtested on the largest flood in the 10-year record, **18-19 Nov 2022**:
 - Both rivers peaked strictly in downstream order: **13.75 h** down the Dee, **15.75 h** down the Don.
 - The high-level flag fired at every main-stem gauge, 3.5-33.5 h before the peak.
 - **Misses:** the strict rise flag missed Garthdee, Park and Polhollick.
-- During floods, the projection beats "no change" out to ~16 h at Garthdee and ~24 h at
-  Parkhill, then does worse than it. The site shows only 12 h.
+- During floods, the projection beats "no change" out to about a day on both rivers, and
+  is worse than it by 36 h. The site shows only 12 h.
 
 Full tables are on the [method page](https://jetlaggedbydata.github.io/dee-and-don-watch/method.html).
 

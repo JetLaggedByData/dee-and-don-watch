@@ -69,8 +69,8 @@
     <p class="st-lede">
       Every main-stem gauge at its true distance from Aberdeen, upstream at the top,
       over the three days around the peak. Each gauge is scaled to
-      <strong>its own rise within this event</strong> &#8212; dark at its lowest here,
-      bright at its peak &#8212; which is the same normalised hydrograph the
+      <strong>its own rise within this event</strong> (dark at its lowest here,
+      bright at its peak), which is the same normalised hydrograph the
       cross-correlation above uses. Percentile is not used here: in the largest event of
       the record every gauge pegs at the 100th for days, leaving no headroom to show the
       one thing this chart is for. The wave is the diagonal, and it is the same
@@ -78,7 +78,7 @@
     </p>
     <div id="stChart"></div>
     <p class="st-note">
-      The gaps between rows are gaps. Nothing is drawn between gauges &#8212; the
+      The gaps between rows are gaps. Nothing is drawn between gauges: the
       30 km between Mar Lodge and Polhollick is unmeasured, and filling it in would
       invent the very thing this chart claims to show. Tributaries are left out because
       they sit on different watercourses, so they have no place on a
@@ -173,8 +173,9 @@
     <p class="fineprint">
       <strong>This is routing, not forecasting.</strong> It uses water that is already in the
       river, which is why it works at all and why it stops working when it does. No rainfall
-      forecast is involved, nothing here is published as a live prediction, and for actual
-      flood warnings the answer remains SEPA and the Met Office.
+      forecast is involved. The monitor draws only the first 12 hours, at Garthdee and
+      Parkhill, and withholds it when an upstream gauge stops reporting. For actual flood
+      warnings the answer remains SEPA and the Met Office.
     </p>
   </section>
 
@@ -182,8 +183,9 @@
     <h2 id="limitsHeading">Limitations</h2>
     <p class="sub">What this cannot tell you, including where it measurably failed.</p>
     <ul class="limits">
-      <li><strong>Not a warning service, and no forecasting.</strong> It describes what gauges
-        have already recorded. A quiet page is not an all-clear.</li>
+      <li><strong>Not a warning service.</strong> It describes what gauges have already
+        recorded, plus a 12-hour routing projection at two gauges. A quiet page is not an
+        all-clear.</li>
       <li><strong>Lead time is a fragile number.</strong> It is set by the earliest marginal
         detection, so it can swing by days while the detector barely moves. One gauge has
         reported "at least 72 hours", then 10.8 hours, then "at least 72 hours" again on
@@ -209,9 +211,9 @@
       <li><strong>Scheduled runs are best-effort.</strong> GitHub warns scheduled workflows can
         be delayed and some jobs dropped, and that they are disabled after 60 days without
         repository activity.</li>
-      <li><strong>Level only.</strong> No rainfall, no flow, no forecast input. Rainfall
-        (SEPA parameter <span class="mono">RE</span>, the same API) would let this explain
-        rises rather than only report them - that is the obvious next step.</li>
+      <li><strong>No rain still to come.</strong> Rainfall here is what has already fallen,
+        hourly and in 0.2&nbsp;mm tipping-bucket steps. Without a weather forecast the
+        projection cannot see the next storm, which is why it stops at 12 hours.</li>
     </ul>
   </section>
 

@@ -15,7 +15,7 @@
 
 <div id="staleBanner" class="banner" role="status" hidden></div>
 
-<div class="app">
+<main class="app">
 
   <div class="app-map" id="riverMap"></div>
 
@@ -23,21 +23,21 @@
 
     <div class="panel-head">
       <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Dee &amp; Don Watch | near Aberdeen</p>
-      <a class="panel-method" href="method.html">How this works, and where it fails &#8594;</a>
+      <a class="panel-method" href="method.html">How this works, and where it fails</a>
     </div>
 
     <!-- Overview: the answer, then every gauge. -->
     <div class="panel-view" id="viewList">
-      <h1 class="answer-line" id="answerLine">Loading&#8230;</h1>
+      <h1 class="answer-line" id="answerLine">Loading...</h1>
       <p class="answer-sub" id="answerSub"></p>
       <p class="trend" id="trend"></p>
       <p class="updated">
-        Last updated <time id="generated" class="mono">&#8212;</time> &#183;
+        Last updated <time id="generated" class="mono">-</time> |
         <a href="method.html">how this is judged</a>
       </p>
 
       <p class="map-hint">
-        On the map, channel width is each gauge&#8217;s level within
+        On the map, channel width is each gauge's level within
         <strong>its own record</strong> and amber means flagged.
         Select any gauge, on the map or below.
       </p>
@@ -64,7 +64,7 @@
         </div>
       </div>
 
-      <h2 id="detailHeading"><span id="detailName">&#8212;</span></h2>
+      <h2 id="detailHeading"><span id="detailName">-</span></h2>
       <p class="detail-sub" id="detailSub"></p>
 
       <div id="chartZone">
@@ -86,9 +86,9 @@
       </div>
 
       <div id="chartbox">
-        <!-- One figure on one time axis: rainfall hanging from the top, level
-             below. Deliberately NOT a dual-axis chart - two y-scales can be
-             slid to make rain and level appear to track each other or not. -->
+        <!-- One figure on one time axis: rainfall hangs from the top on its own
+             scale, level sits below. The two bands never overlap, so neither
+             scale can be slid to make rain and level appear to track. -->
         <figure class="hydro">
           <div class="levelbox">
             <canvas id="chart" role="img" aria-label="Rainfall and river level"></canvas>
@@ -99,7 +99,7 @@
 
       <div class="tablewrap" id="seriesTableWrap" hidden>
         <table id="seriesTable">
-          <caption class="visually-hidden">Daily summary of the last 14 days &#8212; the same data as the chart</caption>
+          <caption class="visually-hidden">Daily summary of the last 14 days: the same data as the chart</caption>
           <thead>
             <tr>
               <th scope="col">Day (UTC)</th>
@@ -127,25 +127,18 @@
 
       <p class="proj-note fineprint" id="projNote" hidden></p>
 
-      <!-- Observational only. What is upstream right now, not what will happen
-           here later: this is not a forecasting service. -->
+      <!-- Observational: what the gauges upstream read right now. -->
       <div class="upstream" id="upstream"></div>
     </div>
 
   </aside>
-</div>
-
-<main>
-
-<main>
-
 </main>
 
 <div class="modal" id="chartModal" role="dialog" aria-modal="true"
      aria-labelledby="modalTitle" hidden>
   <div class="modal-panel">
     <div class="modal-head">
-      <h2 id="modalTitle">&#8212;</h2>
+      <h2 id="modalTitle">-</h2>
       <button type="button" class="modal-close" id="modalClose" aria-label="Close">&#215;</button>
     </div>
     <div class="gaugebar" id="gaugeBar" role="group" aria-label="Choose a gauge"></div>
@@ -169,7 +162,7 @@
     Fetched once and served from this site - no tiles are requested from anyone.
   </p>
   <p class="fineprint">
-    River and coast outlines ©
+    River and coast outlines &copy;
     <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap contributors</a>,
     used under the Open Database Licence. Simplified and served from this site -
     no map tiles are requested from anyone.

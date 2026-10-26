@@ -153,7 +153,7 @@
       (flagged.length === 1 ? 'is' : 'are') + ' showing something unusual.';
     $('answerSub').textContent = parts.join(', ') +
       ' - measured against each gauge\'s own ' + recordYears(index.stations[0].record) +
-      '-year record. This describes what has already been recorded. It is not a forecast.';
+      '-year record. This describes what has already been recorded. It is not a warning.';
   }
 
   /* A count with no direction is half an answer: "4 of 13" reads the same
@@ -222,8 +222,8 @@
         (flags.length > 1 ? '<span class="more">+' + (flags.length - 1) + '</span>' : '') +
       '</span>' +
       (noisy
-        ? '<p class="caveat">Noisy gauge: ' + station.flag_rates.spike.toFixed(1) +
-          '% of readings flag as possible spikes, against about 1% elsewhere.</p>'
+        ? '<span class="caveat">Noisy gauge: ' + station.flag_rates.spike.toFixed(1) +
+          '% of readings flag as possible spikes, against about 1% elsewhere.</span>'
         : '');
   }
 
@@ -303,8 +303,7 @@
   // landed on was the degraded one: a daily envelope with no projection and no
   // quality ribbon. The default should show the most the page can show.
   var rangeIndex = 2;
-  var offsetDays = 0;      // how far back the window's right edge sits
-  var customFrom = null;   // an explicit from/to overrides both
+  var customFrom = null;   // an explicit from/to overrides the preset range
   var customTo = null;
   var histories = {};
   var order = [];     // the list's own order, for stepping inside the sheet
@@ -422,7 +421,7 @@
     return {
       bars: series, max: peak, unit: unit,
       text: '<strong>Rainfall</strong> over the ' +
-        (station.catchment || station.river) + ' catchment \u00b7 ' +
+        (station.catchment || station.river) + ' catchment | ' +
         (perDay ? 'daily totals' : 'hourly') + ', bars peak at ' +
         peak.toFixed(perDay ? 0 : 1) + unit
     };
@@ -474,8 +473,8 @@
       mid.push({ x: x, y: history.mid[i] });
       if (rainAvailable) rainBars.push({ x: x, y: history.rain_mm[i] });
     }
-    // A pan past the start of the record can leave nothing to draw.
-    if (!mid.length) return;
+    // A window before the start of the record leaves nothing to draw.
+    if (!mid.length) { clearChart('No readings in this range.'); return; }
 
     var threshold = station.thresholds && station.thresholds.high_level_m;
 
@@ -594,12 +593,28 @@
     });
   }
 
+  /* Without this a failed or empty draw left the PREVIOUS gauge's chart on
+     screen under the new gauge's name. */
+  function clearChart(message) {
+    if (chart) { chart.destroy(); chart = null; }
+    $('legendProjected').hidden = true;
+    $('projNote').hidden = true;
+    $('rainLabel').hidden = false;
+    $('rainLabel').textContent = message;
+  }
+
   function withHistory(slug, then) {
     if (histories[slug]) { then(histories[slug]); return; }
     fetch('data/' + slug + '_history.json')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (h) { if (h) { histories[slug] = h; then(h); } })
-      .catch(function () { /* the short ranges still work */ });
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (h) {
+        histories[slug] = h;
+        // The reader may have moved on while this loaded.
+        if (slug === current) then(h);
+      })
+      .catch(function () {
+        if (slug === current) clearChart('Could not load the long-range history.');
+      });
   }
 
   /* The year is only worth the space when the window spans one. In a 25 rem
@@ -623,7 +638,7 @@
       from = customFrom;
       to = customTo;
     } else {
-      to = last - offsetDays * DAY;
+      to = last;
       from = to - RANGES[rangeIndex].days * DAY;
     }
 
@@ -636,7 +651,7 @@
 
   function spanLabel(win) {
     if (!customFrom || !customTo) {
-      return RANGES[rangeIndex].label + (offsetDays ? ' \u00b7 shifted back' : '');
+      return RANGES[rangeIndex].label;
     }
     return fmtDay(win.from) + ' to ' + fmtDay(win.to);
   }
@@ -932,12 +947,9 @@
 
   /* What is upstream of this gauge, right now.
 
-     Strictly observational. Water takes time to travel, so an upstream gauge
-     running high is context - but turning that into "expect X here by Y" is a
-     forecast, which this project does not make and is not equipped to make:
-     the backtest found lead times so sensitive that one rise at the 99.501st
-     percentile rather than the 99.492nd moved Garthdee's warning from 10.8
-     hours to more than 72. SEPA and the Met Office issue the warnings. */
+     Observational context only. The one routed projection is the dashed line
+     on the chart, at the two outlet gauges; this list makes no "expect X here
+     by Y" claim of its own. SEPA and the Met Office issue the warnings. */
   function renderUpstream(station) {
     var box = $('upstream');
     var stem = station.river === station.catchment;
@@ -966,7 +978,7 @@
 
     html += '<p class="note">Water takes time to travel: on the largest event in ' +
       'the record a wave took <strong>13 h 45 m</strong> to cross the Dee\'s 82 km. ' +
-      'That is measured history, not a prediction - this page does not forecast. ' +
+      'That is measured history from one event, not a promise about this one. ' +
       'For warnings see <a href="https://www.sepa.org.uk/environment/water/flooding/" ' +
       'rel="noopener">SEPA</a> and the <a href="https://www.metoffice.gov.uk/weather/' +
       'warnings-and-advice/uk-warnings" rel="noopener">Met Office</a>.</p>';
@@ -1063,7 +1075,6 @@
     rangeIndex = Math.max(0, Math.min(RANGES.length - 1, i));
     // Choosing a preset drops any explicit dates and returns to the present.
     customFrom = customTo = null;
-    offsetDays = 0;
     syncControls();
     if (current) { select(current, true); updateHash(); }
   }
@@ -1105,6 +1116,9 @@
 
     function show(detail) {
       details[slug] = detail;
+      // A slow fetch for a gauge the reader has since left must not draw over
+      // the one they are now looking at.
+      if (slug !== current) return;
       drawChart(station, detail);
       renderSeriesTable(detail);
       if (!quiet) {
@@ -1152,7 +1166,6 @@
     if (isNaN(from) || isNaN(to) || to <= from) return;
     customFrom = from;
     customTo = to;
-    offsetDays = 0;
     syncControls();
     if (current) select(current, true);
   }
@@ -1161,6 +1174,19 @@
   $('modalClose').addEventListener('click', function () { setExpanded(false); });
   $('chartModal').addEventListener('click', function (e) {
     if (e.target === $('chartModal')) setExpanded(false);
+  });
+  // aria-modal promises a dialog: Escape closes it and Tab stays inside it.
+  document.addEventListener('keydown', function (e) {
+    if (!expanded) return;
+    if (e.key === 'Escape') { setExpanded(false); return; }
+    if (e.key !== 'Tab') return;
+    var items = Array.prototype.filter.call(
+      $('chartModal').querySelectorAll('button, input, a[href]'),
+      function (el) { return !el.disabled && el.offsetParent !== null; });
+    if (!items.length) return;
+    var first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
   renderRanges();
 

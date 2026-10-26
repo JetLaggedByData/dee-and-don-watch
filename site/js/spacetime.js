@@ -1,7 +1,7 @@
-/* The last 14 days as space and time at once.
+/* One flood event as space and time at once.
 
    Each row is one main-stem gauge, placed at its true distance from Aberdeen,
-   with hourly percentile running left to right. Water moving downstream shows
+   with its hourly level (scaled within the event) running left to right. Water moving downstream shows
    up as brightness moving down and to the right, so the slope of that diagonal
    is the wave's apparent speed - the thing the method page measures at 5.97
    km/h on the Dee is visible here rather than tabulated.
@@ -144,16 +144,22 @@ window.DDWSpaceTime = (function () {
       });
       parts.push(river + ': ' + peak.join('; '));
     });
-    return 'Space-time view of the last ' + data.window_days + ' days. ' +
-           parts.join('. ') + '.';
+    var when = data.event_utc
+      ? 'the ' + data.window_days + ' days around the ' +
+        new Date(data.event_utc).toISOString().slice(0, 10) + ' event'
+      : 'the last ' + data.window_days + ' days';
+    return 'Space-time view of ' + when + '. ' + parts.join('. ') + '.';
   }
 
+  // One table per river: a table may only have one header row group.
   function table(data) {
-    var html = '<table class="st-table"><caption class="visually-hidden">' +
-      'Highest percentile reached each day by each main-stem gauge</caption>';
+    var html = '';
     Object.keys(data.rivers).forEach(function (river) {
       var gs = data.rivers[river];
-      html += '<thead><tr><th scope="col">' + esc(river) + '</th>';
+      html += '<table class="st-table"><caption class="visually-hidden">' +
+        'Highest value reached each day by each ' + esc(river) + ' main-stem gauge, ' +
+        'as a percentage ' + esc(data.unit || 'of its own record') + '</caption>' +
+        '<thead><tr><th scope="col">' + esc(river) + '</th>';
       var days = Math.floor(gs[0].pct.length / 24);
       var start = new Date(data.from);
       for (var d = 0; d < days; d++) {
@@ -172,12 +178,12 @@ window.DDWSpaceTime = (function () {
         }
         html += '</tr>';
       });
-      html += '</tbody>';
+      html += '</tbody></table>';
     });
-    return html + '</table>';
+    return html;
   }
 
-  function legend() {
+  function legend(unitText) {
     var stops = RAMP.map(function (c, i) {
       return '<stop offset="' + (i / (RAMP.length - 1) * 100).toFixed(0) +
              '%" stop-color="rgb(' + c.join(',') + ')"/>';
@@ -187,7 +193,7 @@ window.DDWSpaceTime = (function () {
              '" y="26" text-anchor="middle" class="st-tick">' + v + '</text>';
     }).join('');
     return '<svg class="st-legend" viewBox="0 0 190 32" role="img" ' +
-      'aria-label="Colour scale: 0 to 100 percent of each gauge\'s own record">' +
+      'aria-label="Colour scale: 0 to 100 percent ' + esc(unitText) + '">' +
       '<defs><linearGradient id="stRamp">' + stops + '</linearGradient></defs>' +
       '<rect x="10" y="0" width="170" height="10" fill="url(#stRamp)"/>' +
       ticks + '</svg>';
@@ -212,7 +218,7 @@ window.DDWSpaceTime = (function () {
 
     return '<svg viewBox="0 0 ' + W + ' ' + (top - 30) + '" class="st-svg" ' +
       'role="img" aria-label="' + esc(summarise(data)) + '">' + body + '</svg>' +
-      '<div class="st-foot">' + legend() +
+      '<div class="st-foot">' + legend(data.unit || 'of its own record') +
       '<details class="st-details"><summary>Show as a table</summary>' +
       '<div class="tablewrap">' + table(data) + '</div></details></div>';
   }
@@ -242,7 +248,7 @@ window.DDWSpaceTime = (function () {
       var k = Math.round(f * span.hours);
       var v = row.pct[k];
       var at = new Date(span.start.getTime() + k * 3600000);
-      tip.innerHTML = '<strong>' + row.name + '</strong> ' + row.km.toFixed(1) + ' km<br>' +
+      tip.innerHTML = '<strong>' + esc(row.name) + '</strong> ' + row.km.toFixed(1) + ' km<br>' +
         (v === null || isNaN(v) ? 'no reading' : v.toFixed(1) + unit) +
         '<br><span>' + at.toISOString().slice(0, 16).replace('T', ' ') + ' UTC</span>';
       tip.hidden = false;

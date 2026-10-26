@@ -517,7 +517,6 @@ a:hover { color: #7fe9ff; }
 .g-flag .badge { white-space: nowrap; font-size: 0.64rem; }
 .g-flag .more { font-size: 0.68rem; color: var(--faint); }
 
-.caveat { grid-column: 1 / -1; margin: 0.1rem 0 0; }
 
 /* Only an exception gets a badge. "Normal" is signalled by its absence. */
 .badge {

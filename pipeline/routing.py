@@ -15,7 +15,7 @@ independently: **13.75 h down the Dee, 15.75 h down the Don.** Past it, no water
 presently in the channel has reached the outlet, so any further horizon depends
 on rain that has not fallen. That is weather forecasting, it needs numerical
 weather prediction this project does not have, and it is SEPA and the Met
-Office's job. Nothing here is published as a live prediction.
+Office's job. `forecast.py` publishes only the first 12 hours of this, live.
 
 Model choice, and what lost
 ---------------------------
@@ -23,7 +23,7 @@ Gradient boosting on engineered features, chosen by comparison rather than
 taste. On held-out data at a 6-hour horizon, flood skill was:
 
     gradient boosting  77.2%     random forest   77.1%
-    linear (OLS)       71.4%     neural net      70.2%
+    linear (Ridge)     71.4%     neural net      70.2%
 
 The neural net is the instructive one. It **won on validation at 79.1% and
 dropped to 70.2% on test** - worse than linear regression. Selecting on
@@ -40,8 +40,9 @@ Two pieces of domain knowledge do more work than the model class:
 
 Honest evaluation
 -----------------
-* Split **by time**, three ways - train / validation / test. Never shuffled.
-* Every choice is made on validation; the test set is scored once, at the end.
+* Split **by time**, never shuffled. The model class above was chosen on a
+  validation slice during development; the published fit trains on the first
+  85% of the record and scores once on the last 15%, which it never sees.
 * Everything is compared against **persistence**, because a river is strongly
   autocorrelated and a naive forecast already looks good on raw error.
 * Skill is reported **separately for the top 1% of levels**. A model that is
@@ -68,7 +69,7 @@ from common import REPO_ROOT, load_config, raw_dir, slugify
 from detect import to_regular_grid
 
 HORIZONS_H = (1, 2, 3, 4, 6, 8, 12, 16, 24, 36, 48)
-TRAIN_END, VAL_END = 0.70, 0.85
+TEST_START = 0.85
 EXTREME_QUANTILE = 0.99
 RAIN_WINDOWS_H = (6, 24, 72)
 NEWLINE = chr(10)
@@ -148,7 +149,12 @@ def build_features(
         f[f"{name}_arrival_d1"] = series.diff(per_hour).shift(offset)
 
     if not rain.empty:
-        aligned = rain.reindex(target.index).ffill()
+        # The rain feed normally runs 30-60 min behind level. Carrying the last
+        # total forward up to 3 h covers that; an unlimited fill would keep
+        # repeating it after the feed stopped and hand the live projection rain
+        # that never fell. Past 3 h the rain features go missing, the newest row
+        # is dropped, and the projection is withheld as stale.
+        aligned = rain.reindex(target.index).ffill(limit=3 * per_hour)
         for hours in RAIN_WINDOWS_H:
             f[f"rain{hours}"] = aligned.rolling(hours * per_hour).sum()
 
@@ -161,12 +167,17 @@ def build_features(
     return f
 
 
-def three_way(frame: pd.DataFrame):
-    """Split by time. Shuffling a time series leaks the answer."""
-    n = len(frame)
-    return (frame.iloc[: int(n * TRAIN_END)],
-            frame.iloc[int(n * TRAIN_END): int(n * VAL_END)],
-            frame.iloc[int(n * VAL_END):])
+def make_model() -> HistGradientBoostingRegressor:
+    """The routing model. forecast.py fits the same one, so the error band it
+    draws (measured here) describes the model it actually runs."""
+    return HistGradientBoostingRegressor(
+        max_iter=400, learning_rate=0.06, max_leaf_nodes=31, random_state=0)
+
+
+def split_by_time(frame: pd.DataFrame):
+    """Fit on the past, score on the future. Shuffling a time series leaks the answer."""
+    cut = int(len(frame) * TEST_START)
+    return frame.iloc[:cut], frame.iloc[cut:]
 
 
 def skill_of(pred_delta, part):
@@ -193,8 +204,7 @@ def evaluate(target, upstream, lags_h, rain, freq_minutes):
         if len(frame) < 10_000:
             continue
 
-        train, val, test = three_way(frame)
-        fit_on = pd.concat([train, val])
+        fit_on, test = split_by_time(frame)
         cols = [c for c in frame.columns if c not in ("y_delta", "y_abs", "persistence")]
 
         # Linear baseline kept alongside, so the gain from boosting stays visible
@@ -206,9 +216,7 @@ def evaluate(target, upstream, lags_h, rain, freq_minutes):
             fit_on[cols], fit_on["y_delta"])
         lin_skill, lin_hi, _, _ = skill_of(linear.predict(test[cols]), test)
 
-        model = HistGradientBoostingRegressor(
-            max_iter=400, learning_rate=0.06, max_leaf_nodes=31, random_state=0
-        ).fit(fit_on[cols], fit_on["y_delta"])
+        model = make_model().fit(fit_on[cols], fit_on["y_delta"])
         skill, skill_hi, rmse_m, base_rmse = skill_of(model.predict(test[cols]), test)
 
         rows.append({
@@ -238,7 +246,6 @@ def main(argv: list[str] | None = None) -> int:
     levels = load_levels(config)
     freq = config["detect"]["freq_minutes"]
     by_name = {s["name"]: s for s in config["stations"]}
-    travel = {"Garthdee": 13.75, "Parkhill": 15.75}
 
     results = []
     for outlet, lags in REACHES.items():
@@ -254,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         results.append({
             "outlet": outlet,
             "upstream": list(upstream),
-            "travel_time_hours": travel.get(outlet),
+            "travel_time_hours": max(lags.values()),
             "uses_rainfall": bool(not rain.empty),
             "horizons": rows,
         })
@@ -273,12 +280,12 @@ def main(argv: list[str] | None = None) -> int:
             "method": "gradient boosting on upstream level, rate of change shifted by "
                       "measured travel time, and catchment rainfall windows",
             "baseline": "persistence",
-            "linear_baseline": "ordinary least squares on the same features",
-            "split": "time-ordered 70/15/15; chosen on validation, scored once on test",
+            "linear_baseline": "ridge regression on the same standardised features",
+            "split": "time-ordered; fit on the first 85%, scored once on the last 15%",
             "target": "change in level over the horizon, not the level itself",
             "extreme_quantile": EXTREME_QUANTILE,
-            "note": "Routing of water already in the channel. Not a forecast, not "
-                    "published live, and no rainfall forecast is used.",
+            "note": "Routing of water already in the channel. forecast.py publishes "
+                    "the first 12 hours live; no rainfall forecast is used.",
             "reaches": results,
         }, indent=1), encoding="utf-8")
         print(NEWLINE + "Wrote " + str(out.relative_to(REPO_ROOT)))

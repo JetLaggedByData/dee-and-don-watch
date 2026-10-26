@@ -5,8 +5,7 @@ name: Update river data
 # NOTHING IS COMMITTED. site/data is derived data, regenerated on every run from
 # the parquet cache that actions/cache restores. upload-pages-artifact reads the
 # runner's filesystem, so the JSON only has to exist at that moment, not live in
-# git. Committing it at a 15-minute cadence would add ~35,000 churn commits a
-# year and the repository, not the API, would be the thing that broke first.
+# git. Committing it every 30 minutes would add ~17,500 churn commits a year.
 
 on:
   schedule:
@@ -16,37 +15,35 @@ on:
     # be dropped" - so treat this as best-effort, not a guarantee. The site
     # shows a stale banner after 6 hours precisely because of that.
     #
-    # Half-hourly, not quarter-hourly, deliberately: SEPA document a 5,000
-    # credit/day limit for ANONYMOUS access but never state the limit for
-    # the Referer access this uses. Rather than assume the two match, this
-    # runs at roughly 1,500 credits/day, under any plausible limit. Worth
-    # raising to '7,22,37,52' once a registered API key is in place.
+    # SEPA document a 5,000 credit/day limit for ANONYMOUS access but never
+    # state the limit for the Referer access this uses, so the cadence is kept
+    # at roughly 1,400 credits/day. Worth raising to '7,22,37,52' once a
+    # registered API key is in place.
     - cron: '7,37 * * * *'
     # Once daily, deep: re-request a 35-day overlap so SEPA's monthly quality
-    # control revisions reach the cache. Too expensive to do every 15 minutes.
+    # control revisions reach the cache, and refit the routing skill curve.
     - cron: '17 4 * * *'
   workflow_dispatch:
     inputs:
       full_backfill:
-        description: 'Ignore the cache and re-fetch the full history (~5,900 SEPA credits)'
+        description: 'Ignore the cache and re-fetch the full history (~6,000 SEPA credits)'
         type: boolean
         default: false
 
 permissions:
-  # Read-only on contents: nothing is committed any more.
-  contents: read
+  contents: read    # nothing is committed
   pages: write      # publish to GitHub Pages
   id-token: write   # OIDC token that deploy-pages requires
 
-# One at a time: two runs pushing to the same branch would race, and Pages
-# rejects concurrent deployments.
+# One at a time: Pages rejects concurrent deployments.
 concurrency:
   group: update-and-deploy
   cancel-in-progress: false
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which is moving to Ubuntu 26.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -54,37 +51,39 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          # Matches the version the pipeline and tests were developed against.
           python-version: '3.12'
           cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # All three data directories are gitignored, so without this a fresh
-      # runner would re-backfill everything: ten years of level for 13 gauges
-      # (~4,900 credits) plus rainfall (~1,050) against a 5,000/day budget.
-      # With a cache hit, an incremental top-up is ~60.
+      # Before spending any credits: if the detectors are broken, stop here
+      # rather than publishing numbers produced by broken code.
+      - name: Run tests
+        run: pytest -q
+
+      # The parquet directories are gitignored, so without this a fresh runner
+      # would re-download ten years (~6,000 credits). Both paths matter: with
+      # rainfall missing, export.py would publish a level-only site.
       #
-      # ALL THREE PATHS MATTER. Caching only data/raw would leave rainfall and
-      # flow empty on a cold cache, and export.py would then quietly publish a
-      # level-only site over the good one - worse than failing.
-      #
-      # The run_id key always saves a fresh entry; restore-keys finds the newest.
-      - name: Restore SEPA parquet cache
-        uses: actions/cache@v6
+      # routing.json is cached too. It is only refitted on the daily deep run,
+      # and site/data starts empty on every runner, so without the cache the
+      # projection's error band and the method page's skill curve would vanish
+      # for the other 47 runs of the day.
+      - name: Restore SEPA cache
+        id: cache
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/raw
             data/raw_rain
-            data/raw_flow
+            site/data/routing.json
           key: sepa-raw-${{ github.run_id }}
           restore-keys: sepa-raw-
 
       # Cold cache (the first run, or an entry evicted after 7 days unused):
-      # seed from the snapshot attached to the `data-seed` release rather than
-      # paying ~6,200 credits to re-download ten years. fetch.py then only
-      # requests the gap between the snapshot and now.
+      # seed from the snapshot attached to the `data-seed` release. fetch.py
+      # then only requests the gap between the snapshot and now.
       - name: Seed cache from release snapshot
         if: hashFiles('data/raw/*.parquet') == ''
         env:
@@ -94,18 +93,10 @@ jobs:
           tar -xzf sepa-seed.tar.gz
           rm sepa-seed.tar.gz
 
-      # Before spending any credits: if the detectors are broken, stop here
-      # rather than publishing numbers produced by broken code.
-      - name: Run tests
-        run: pytest -q
-
-      # Two cadences, because the overlap is what costs money. A 15-minute
-      # top-up only needs the last few hours; the 35-day overlap that catches
-      # SEPA's monthly revisions runs once a day.
-      #
-      #   every 15 min : ~25 credits  -> ~2,400/day
-      #   daily deep   : ~60 credits
-      #   budget       : 5,000/day on Referer access
+      # A routine run only needs the last few hours (~25 requests, billed at
+      # the 1-credit minimum each, so ~25-30 credits). The daily deep run
+      # re-requests a 35-day overlap to pick up SEPA's monthly revisions
+      # (~65 credits). 48 x ~28 + 65 is about 1,400 credits/day.
       - name: Decide fetch depth
         id: depth
         run: |
@@ -118,23 +109,11 @@ jobs:
 
       - name: Fetch level and rainfall
         env:
-          # Optional. Only needed if the Referer-access daily limit is ever hit;
-          # request one from hydrometry-requests@sepa.org.uk. SEPA asks that web
-          # products polling this often register for one.
+          # Optional. SEPA ask that web products polling this often register;
+          # request a key from hydrometry-requests@sepa.org.uk.
           SEPA_ACCESS_KEY: ${{ secrets.SEPA_ACCESS_KEY }}
           DDW_OVERLAP_HOURS: ${{ steps.depth.outputs.deep == 'true' && '840' || '6' }}
         run: python pipeline/fetch.py --only both ${{ inputs.full_backfill && '--full' || '' }}
-
-      # Long-record flow: daily means back to 1929, and every flood peak since
-      # 1971. These are sparse series that SEPA bills at the 1-credit minimum,
-      # so refreshing them each run costs about 30 credits in total.
-      # Long-record flow changes slowly - daily is plenty, and it saves ~255
-      # credits on every quarter-hourly run.
-      - name: Fetch long-record flow
-        if: steps.depth.outputs.deep == 'true'
-        env:
-          SEPA_ACCESS_KEY: ${{ secrets.SEPA_ACCESS_KEY }}
-        run: python pipeline/fetch_flow.py
 
       - name: Export site data
         run: python pipeline/export.py
@@ -145,33 +124,46 @@ jobs:
       - name: Re-run the downstream travel-time analysis
         run: python pipeline/wave.py --json site/data/wave.json
 
-      # Routing skill, refitted on the current record: the held-out skill curve
-      # shown on the method page, and the error band the projection uses.
+      # The held-out skill curve shown on the method page, and the error band
+      # the projection uses. Daily is enough; also runs if the cache had none.
       - name: Re-fit the routing skill curve
-        if: steps.depth.outputs.deep == 'true'
+        if: steps.depth.outputs.deep == 'true' || hashFiles('site/data/routing.json') == ''
         run: python pipeline/routing.py --json site/data/routing.json
 
-      # The 12-hour projection at the two outlet gauges. Runs on EVERY pass,
-      # not just the deep one: a 12-hour projection issued once a day is stale
-      # for most of the day, which would be worse than not drawing it. Fitting
-      # takes about 35 s, and this is a public repo, so Actions minutes are not
-      # the constraint. Routes water already measured upstream - it uses no
-      # weather forecast and is not a warning.
+      # The 12-hour projection at the two outlet gauges. Runs on EVERY pass: a
+      # 12-hour projection issued once a day is stale for most of the day.
+      # Routes water already measured upstream - it uses no weather forecast
+      # and is not a warning.
       - name: Project the next 12 hours
         run: python pipeline/forecast.py
+
+      # Saved on the deep run and after a cold start only. Saving every run
+      # would write a new ~32 MB entry each time (~1.5 GB/day) for no benefit:
+      # a routine top-up is cheap to repeat. !cancelled() keeps a partial
+      # backfill if a later step fails, so its credits are not spent twice.
+      - name: Save SEPA cache
+        if: >-
+          !cancelled() &&
+          (steps.depth.outputs.deep == 'true' || steps.cache.outputs.cache-matched-key == '')
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            data/raw
+            data/raw_rain
+            site/data/routing.json
+          key: sepa-raw-${{ github.run_id }}
 
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          # The whole static site. Pages' "deploy from a branch" mode cannot
-          # publish an arbitrary folder, which is why this uses the Actions
-          # source instead - see the README.
+          # Pages' "deploy from a branch" mode cannot publish an arbitrary
+          # folder, which is why this uses the Actions source instead.
           path: site
 
   deploy:
     needs: update
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

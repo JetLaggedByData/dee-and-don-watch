@@ -1,7 +1,7 @@
 /* The catchment, drawn from real geometry.
 
    River centrelines and coastline come from OpenStreetMap, fetched once by
-   pipeline/bake_geo.py, simplified to ~50 m and committed as a 21 KB file.
+   pipeline/bake_geo.py, simplified to ~50 m and committed as a ~42 KB file.
    Gauges sit at their true SEPA coordinates. Equirectangular projection with
    one scale on both axes, so the catchment keeps its real shape.
 
@@ -136,9 +136,12 @@
     var hot = flagged(s);
     var r = hot ? 6.5 : 4;
     var dy = above ? -(15 + bump) : (19 + bump);
+    // A gap or a stalled feed leaves the latest value null; a flagged gauge
+    // is exactly where that happens, and toFixed on null took the map down.
+    var value = s.latest.value === null ? null : s.latest.value.toFixed(2);
     var out = '<g class="gauge-mark" data-slug="' + s.slug + '" tabindex="0" role="button" ' +
-      'aria-label="' + esc(s.name + ', ' + s.river + ', ' + s.latest.value +
-        ' metres, higher than ' + pctOf(s).toFixed(0) + ' percent of its record' +
+      'aria-label="' + esc(s.name + ', ' + s.river + ', ' +
+        (value === null ? 'no current reading' : value + ' metres') + ', higher than ' + pctOf(s).toFixed(0) + ' percent of its record' +
         (hot ? ', running high' : '')) + '">';
     out += '<circle cx="' + gx + '" cy="' + gy + '" r="18" fill="transparent"/>';
     // Drawn under the dot: invisible until hovered, focused or selected.
@@ -151,9 +154,9 @@
            (hot ? C.spate : C.water) + '" stroke="' + C.ground + '" stroke-width="1.8"/>';
     out += '<text x="' + gx + '" y="' + (gy + dy) + '" text-anchor="middle" class="rv-name' +
            (hot ? ' hot' : '') + '">' + esc(s.name) + '</text>';
-    if (hot) {
+    if (hot && value !== null) {
       out += '<text x="' + gx + '" y="' + (gy + dy + (above ? -12 : 12)) +
-             '" text-anchor="middle" class="rv-val">' + s.latest.value.toFixed(2) + ' m</text>';
+             '" text-anchor="middle" class="rv-val">' + value + ' m</text>';
     }
     return out + '</g>';
   }
@@ -162,7 +165,9 @@
     H = fitHeight();
     var stations = index.stations;
     var p = projector(stations);
-    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="river-svg" role="img" ' +
+    // role="group", not "img": an image's children are hidden from assistive
+    // tech, which left every focusable gauge marker without a name.
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="river-svg" role="group" ' +
       'aria-label="' + esc(summary(index, geo)) + '">';
 
     svg += '<defs><clipPath id="rvFrame"><rect x="0" y="0" width="' + W + '" height="' +

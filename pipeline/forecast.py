@@ -20,9 +20,9 @@ Why only two gauges, and only twelve hours
 Only Garthdee and Parkhill have gauges above them to route from; the other
 eleven are headwaters or sit on tributaries with a single gauge. And skill
 collapses around each catchment's travel time (13.75 h on the Dee, 15.75 h on
-the Don) because beyond that the water has not entered the river yet. Past 24 h
-the model measured WORSE than assuming nothing changes - Parkhill scores -0.23
-at 36 h - so the projection stops at 12 h rather than fading out.
+the Don) because beyond that the water has not entered the river yet. By 36 h
+the model measures WORSE than assuming nothing changes on both rivers (see
+routing.json), so the projection stops at 12 h rather than fading out.
 
 The band is the model's own test error at that horizon, read from routing.json,
 so what is drawn as uncertainty is measured rather than assumed.
@@ -36,15 +36,12 @@ from datetime import timedelta
 from typing import Any
 
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
 
 from common import REPO_ROOT, load_config, slugify
-from routing import REACHES, build_features, catchment_rain, load_levels
+from routing import REACHES, build_features, catchment_rain, load_levels, make_model
 
 # Capped at twelve hours on purpose. See the module docstring.
 PROJECT_HORIZONS_H = (1, 2, 3, 4, 6, 8, 12)
-
-CATCHMENT = {"Garthdee": "Dee", "Parkhill": "Don"}
 
 
 def iso(ts: pd.Timestamp) -> str:
@@ -88,9 +85,7 @@ def project(outlet: str, levels: dict[str, pd.Series], rain: pd.Series,
         if len(labelled) < 10_000 or usable.empty:
             continue
 
-        model = HistGradientBoostingRegressor(
-            max_iter=400, learning_rate=0.06, max_leaf_nodes=31, random_state=0
-        ).fit(labelled[cols], labelled["y_delta"])
+        model = make_model().fit(labelled[cols], labelled["y_delta"])
 
         latest = usable.iloc[[-1]]
         delta = float(model.predict(latest[cols])[0])
@@ -135,9 +130,8 @@ def main() -> int:
     if not routing:
         print("No routing.json - the band will be omitted", file=sys.stderr)
 
-    sample = next(iter(levels.values()))
-    freq_minutes = int(
-        pd.Series(sample.index).diff().dropna().mode().iloc[0].total_seconds() // 60)
+    freq_minutes = config["detect"]["freq_minutes"]
+    catchment = {s["name"]: s["catchment"] for s in config["stations"]}
 
     print(f"Routing water already in the channel ({freq_minutes}-minute data)\n")
 
@@ -145,7 +139,7 @@ def main() -> int:
     for outlet in REACHES:
         if outlet not in levels:
             continue
-        result = project(outlet, levels, catchment_rain(config, CATCHMENT[outlet]),
+        result = project(outlet, levels, catchment_rain(config, catchment[outlet]),
                          routing, freq_minutes)
         if result:
             out[slugify(outlet)] = result
